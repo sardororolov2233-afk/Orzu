@@ -3,7 +3,7 @@ import logging
 REFERAT_PRICE = 8000
 import asyncio
 import random
-from aiogram import Router, F
+from aiogram import Router, F, Bot
 from aiogram.types import Message, CallbackQuery, FSInputFile
 from aiogram.fsm.context import FSMContext
 from states import ReferatState
