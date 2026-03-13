@@ -8,26 +8,18 @@ from keyboards import (
     get_page_selection_kb
 )
 from database import save_user_profile, get_user_profile, get_user_balance, update_user_balance
-from utils.ppt_doc import create_pptx_file
 from utils.common import MAIN_MENU_COMMANDS
-from utils.image_generator import get_image_path_from_description
 import json
 import asyncio
 import logging
 import shutil
 from pathlib import Path
-from services.ai_service import generate_presentation_data
-from services.html_renderer import render_html
-from services.pdf_generator import generate_pdf
-from services.pptx_generator import generate_pptx
-
-from services.pptx_generator import generate_pptx
 
 # WebApp URL (.env dan yoki to'g'ridan-to'g'ri config dan olish mumkin)
 import os
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.types.web_app_info import WebAppInfo
-WEBAPP_URL = os.getenv("FRONTEND_URL", "https://yordamchiai.vercel.app")
+WEBAPP_URL = os.getenv("FRONTEND_URL", "https://yordamchi-ai-murex.vercel.app/")
 
 logger = logging.getLogger(__name__)
 
