@@ -1,0 +1,2 @@
+Check the text for excessive repetition of phrases or concepts.
+Return ONLY the repetitive segments if any, otherwise return 'CLEAN'.

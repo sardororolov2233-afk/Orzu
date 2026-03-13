@@ -1,0 +1,12 @@
+Remove semantic repetition from the text.
+
+RULES:
+- Do NOT reduce volume significantly
+- Do NOT change meaning
+- Do NOT add new content
+
+TEXT:
+{{text}}
+
+OUTPUT:
+Cleaned text only.

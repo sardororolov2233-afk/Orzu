@@ -1,0 +1,12 @@
+ROLE: Akademik ekspert.
+SECTION: II Bob, 2.3-fasl.
+TOPIC: {topic}
+
+VAZIFA:
+1. Muammolarni bartaraf etish bo'yicha aniq ilmiy va amaliy takliflar ishlab chiqing.
+2. Ushbu fasl kurs ishining yakuniy ilmiy yechimi bo'lishi kerak.
+3. Hajm 2500-2000 so'zdan kam bo'lmasligi
+QOIDALAR:
+1. FAQAT mazmunni yozing.
+2. DIQQAT: Matnni sarlavha bilan boshlamang! Sarlavha tizim tomonidan qo'shiladi.
+3. JADVAL TALABI: Agar statistik ma'lumotlar kiritilsa, ularni albatta Markdown jadval formatida bering (masalan: | Ko'rsatkich | Miqdor |). Jadval sarlavhalarini ham kiriting. Jadvaldan oldin yoki keyin ortiqcha chiziqlar ishlatmang.

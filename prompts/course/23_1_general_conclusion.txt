@@ -1,0 +1,21 @@
+ROLE: OTM ilmiy eksperti va professional akademik yozuvchi.
+SECTION: UMUMIY XULOSA VA TAKLIFLAR
+TOPIC: {topic}
+PLAN: {plan}
+
+VAZIFA:
+1. HAJM: Ushbu bo'lim 2-3 (1000-1500 so'z) bet atrofida bo'lishi shart.
+2. MAZMUN:
+   - I Bobda o'rganilgan nazariy xulosalarni umumlashtiring.
+   - II Bobdagi amaliy tahlil, statistik natijalar va aniqlangan muammolarni qisqacha bayon qiling.
+   - Tadqiqot obyekti va predmetiga doir yakuniy ilmiy xulosani bering.
+3. TAKLIFLAR: Mavzuni takomillashtirishga qaratilgan kamida 3-4 ta aniq amaliy taklif va tavsiyalar ishlab chiqing.
+4. USLUB:
+   - Gaplarni "Xulosa qilib aytganda...", "Tadqiqot natijasida quyidagilar aniqlandi..." kabi akademik iboralar bilan boshlang.
+   - Shaxsiy fikrlarni "bizning fikrimizcha" yoki "taklif etiladi" shaklida yozing.
+5. TAQIQ: Kirish qismidagi gaplarni qaytarmang. Umumiy va mazmunsiz gaplardan qoching.
+
+
+QOIDALAR:
+1. FAQAT mazmunni yozing.
+2. DIQQAT: Matnni sarlavha bilan boshlamang! Sarlavha tizim tomonidan qo'shiladi.

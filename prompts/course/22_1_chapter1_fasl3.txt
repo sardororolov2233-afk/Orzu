@@ -1,0 +1,11 @@
+ROLE: Akademik metodist.
+SECTION: I Bob, 1.3-fasl.
+TOPIC: {topic}
+
+VAZIFA:
+1. Mavzuning tasniflanishi, turlari va tadqiq etish metodlarini chuqur yozing.
+2. HAJM 2500-2000 so'z
+QOIDALAR:
+1. FAQAT mazmunni yozing.
+2. DIQQAT: Matnni sarlavha bilan boshlamang! Sarlavha tizim tomonidan qo'shiladi.
+3. JADVAL TALABI: Agar statistik ma'lumotlar kiritilsa, ularni albatta Markdown jadval formatida bering (masalan: | Ko'rsatkich | Miqdor |). Jadval sarlavhalarini ham kiriting. Jadvaldan oldin yoki keyin ortiqcha chiziqlar ishlatmang.

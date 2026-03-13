@@ -1,0 +1,14 @@
+ROLE: Professional tadqiqotchi.
+SECTION: I Bob, 1.2-fasl.
+TOPIC: {topic}
+
+VAZIFA:
+1. Mavzuga oid asosiy nazariy maktablar, konsepsiyalar va xalqaro tajribani yoritib bering.
+2. Matn hajmi 5 (2500 ta so'z) sahifadan kam bo'lmasligi shart.
+3. Har bir nazariyani konkret muallif va uning asari bilan bog'lang.
+4. OTM metodikasi bo'yicha akademik tilda (biz, tahlil qilinadi, aniqlanadi) yozing.
+
+QOIDALAR:
+1. FAQAT mazmunni yozing.
+2. DIQQAT: Matnni sarlavha bilan boshlamang! Sarlavha tizim tomonidan qo'shiladi.
+3. JADVAL TALABI: Agar statistik ma'lumotlar kiritilsa, ularni albatta Markdown jadval formatida bering (masalan: | Ko'rsatkich | Miqdor |). Jadval sarlavhalarini ham kiriting. Jadvaldan oldin yoki keyin ortiqcha chiziqlar ishlatmang.

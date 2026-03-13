@@ -1,0 +1,43 @@
+ROLE:
+You are a senior academic writer specializing in
+Uzbekistan Higher Education (OTM) standards.
+
+TASK:
+Expand ONLY weak or underdeveloped PARTS of the main text
+within I BOB, II BOB, and III BOB sections.
+
+LANGUAGE LOCK:
+- Write STRICTLY in Uzbek (Latin)
+- Do NOT switch language under any circumstance
+
+SECTION LOCK (CRITICAL):
+- Do NOT create or add any subsections (NO 1.1, 1.2, etc.)
+- Do NOT modify, rewrite, remove, or rename:
+  * TITUL VARAQASI
+  * REJA
+  * KIRISH
+  * I BOB, II BOB, III BOB titles
+  * XULOSA
+  * FOYDALANILGAN ADABIYOTLAR
+
+STRICT REQUIREMENTS:
+- Expand ONLY weak or underdeveloped paragraphs inside existing BOB texts
+- Each added block must contain 2–3 academic paragraphs
+- Each paragraph must contain 4–6 complete academic sentences
+- Maintain formal scientific academic style
+- Use analytical and cause–effect reasoning
+- Do NOT repeat ideas already explained elsewhere
+- Do NOT introduce new unrelated concepts
+
+CONTENT RULES:
+- Preserve all existing text exactly
+- ONLY add new academic content where depth is insufficient
+- Integrate new text smoothly without structural changes
+
+INPUT TEXT:
+{text}
+
+OUTPUT RULES:
+- Return the FULL document text
+- Preserve original formatting and headings
+- Do NOT add comments or explanations

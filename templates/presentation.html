@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Cinzel:wght@400;700&family=Lato:wght@400;700&family=Playfair+Display:wght@400;700&family=Montserrat:wght@400;700&family=Audiowide&family=Press+Start+2P&family=Quicksand:wght@400;700&display=swap');
+        @page {
+            size: 1280px 720px;
+            margin: 0;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            width: 1280px;
+            height: 720px;
+        }
+        .font-inter { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+        .font-cinzel { font-family: 'Cinzel', serif; }
+        .font-lato { font-family: 'Lato', ui-sans-serif, system-ui, Arial, sans-serif; }
+        .font-playfair { font-family: 'Playfair Display', serif; }
+        .font-montserrat { font-family: 'Montserrat', ui-sans-serif, system-ui, Arial, sans-serif; }
+        .font-audiowide { font-family: 'Audiowide', cursive; }
+        .font-pressstart { font-family: 'Press Start 2P', cursive; }
+        .font-quicksand { font-family: 'Quicksand', ui-sans-serif, system-ui, Arial, sans-serif; }
+        .slide-container {
+            width: 1280px;
+            height: 720px;
+            page-break-after: always;
+            overflow: hidden;
+        }
+        .chrome-text { background: linear-gradient(to bottom, #00f2ff 0%, #ffffff 50%, #007075 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 2px 2px 0px #bc13fe; }
+        .gold-text { color: #E5C578; background: linear-gradient(to bottom right, #F9F295, #E0AA3E, #E5C578, #B88A44); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+        .gold-border { border: 1px solid transparent; background: linear-gradient(#0a0a0a, #0a0a0a) padding-box, linear-gradient(135deg, #bf953f 0%, #fcf6ba 40%, #b38728 60%, #fbf5b7 100%) border-box; }
+        .retro-grid { background-image: linear-gradient(transparent 95%, rgba(255, 0, 255, 0.7) 95%), linear-gradient(90deg, transparent 95%, rgba(255, 0, 255, 0.7) 95%); background-size: 40px 40px; transform: perspective(500px) rotateX(60deg) translateY(-100px) translateZ(-200px); }
+        .bg-circuit { background-image: radial-gradient(#083344 1px, transparent 1px), linear-gradient(to right, #083344 1px, transparent 1px); background-size: 20px 20px, 40px 40px; }
+        .vhs-noise { background-image: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.1) 3px); pointer-events: none; }
+        .aged-paper { background-image: radial-gradient(rgba(0,0,0,0.05) 1px, transparent 1px); background-size: 4px 4px; }
+        
+        /* PDF Compatibility (Manual Tailwind Mapping) */
+        .w-full { width: 100%; }
+        .h-full { height: 100%; }
+        .h-1 { height: 4px; }
+        .w-20 { width: 80px; }
+        .w-24 { width: 96px; }
+        .w-32 { width: 128px; }
+        .h-32 { height: 128px; }
+        .p-8 { padding: 32px; }
+        .p-10 { padding: 40px; }
+        .p-12 { padding: 48px; }
+        .p-16 { padding: 64px; }
+        .pb-2 { padding-bottom: 8px; }
+        .pb-4 { padding-bottom: 16px; }
+        .pl-4 { padding-left: 16px; }
+        .pl-6 { padding-left: 24px; }
+        .mb-4 { margin-bottom: 16px; }
+        .mb-6 { margin-bottom: 24px; }
+        .mb-8 { margin-bottom: 32px; }
+        .mt-8 { margin-top: 32px; }
+        .mt-10 { margin-top: 40px; }
+        .mx-auto { margin-left: auto; margin-right: auto; }
+        .space-y-2 > * + * { margin-top: 8px; }
+        .space-y-4 > * + * { margin-top: 16px; }
+        .space-y-6 > * + * { margin-top: 24px; }
+        
+        .bg-white { background-color: white; }
+        .bg-black { background-color: black; }
+        .bg-slate-950 { background-color: #020617; }
+        .bg-zinc-950 { background-color: #09090b; }
+        .bg-neutral-900 { background-color: #171717; }
+        .bg-blue-600 { background-color: #2563eb; }
+        .bg-pink-200 { background-color: #fbcfe8; }
+        
+        .text-white { color: white; }
+        .text-black { color: black; }
+        .text-center { text-align: center; }
+        .text-xl { font-size: 20px; }
+        .text-2xl { font-size: 24px; }
+        .text-3xl { font-size: 30px; }
+        .text-4xl { font-size: 36px; }
+        .text-5xl { font-size: 48px; }
+        .text-6xl { font-size: 60px; }
+        .font-bold { font-weight: bold; }
+        .font-black { font-weight: 900; }
+        .font-light { font-weight: 300; }
+        .italic { font-style: italic; }
+        .uppercase { text-transform: uppercase; }
+        .tracking-widest { letter-spacing: 0.1em; }
+        
+        .rounded-full { border-radius: 9999px; }
+        .rounded-xl { border-radius: 12px; }
+        .rounded-2xl { border-radius: 16px; }
+        .border { border-width: 1px; }
+        .border-2 { border-width: 2px; }
+        .border-4 { border-width: 4px; }
+        .border-white { border-color: white; }
+        
+        .relative { position: relative; }
+        .absolute { position: absolute; }
+        .inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
+        .overflow-hidden { overflow: hidden; }
+        
+        .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        .opacity-20 { opacity: 0.2; }
+        .opacity-50 { opacity: 0.5; }
+        
+        /* Flexbox alternatives for xhtml2pdf */
+        .flex { display: block; } /* xhtml2pdf doesn't support flex, fallback to block */
+        .flex-col { }
+        .justify-center { }
+        .items-center { }
+        
+        /* Grid alternatives */
+        .grid { display: block; }
+        .grid-cols-1 { }
+        
+    </style>
+</head>
+<body>
+
+{% for slide in slides %}
+<div class="slide-container">
+    {% set design_id = slide.design_id | default(9) %}
+    {% set perc = ((loop.index * 100) / (slides|length)) | int %}
+    <div class="w-full h-1 bg-white/10">
+        <div class="h-full bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 shadow-lg" style="width: calc(perc * 1%);"></div>
+    </div>
+    
+    {% if design_id == 1 %}
+    <div class="w-full h-full bg-slate-950 text-white p-12 relative overflow-hidden flex flex-col justify-center font-inter"> 
+        <div class="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-blue-600 rounded-full blur-[120px] opacity-20"></div> 
+        <div class="absolute inset-0 bg-white/5 backdrop-blur-2xl border border-white/10 flex flex-col p-12"> 
+            <h1 class="text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-blue-300">{{ slide.title }}</h1> 
+            <div class="mt-8 flex flex-row gap-8 items-start">
+                        <div class="flex-1 space-y-4">
+                            {% for bullet in slide.bullets %}
+                            <p class="text-xl text-cyan-200/80 border-b border-white/5 py-2">• {{ bullet }}</p>
+                            {% endfor %}
+                        </div>
+                        {% if slide.image_url %}
+                        <div class="w-1/3 h-64 overflow-hidden rounded-xl border border-white/20">
+                            <img src="file:///{{ slide.image_url }}" class="w-full h-full object-cover">
+                        </div>
+                        {% endif %}
+                    </div>
+        </div> 
+    </div>
+
+    {% elif design_id == 2 %}
+    <div class="w-full h-full bg-[#f4eccf] text-amber-900 p-16 relative border-4 border-double border-amber-900/40"> 
+        <div class="absolute inset-0 aged-paper opacity-40 pointer-events-none"></div>
+        <div class="text-center border-b-2 border-amber-900/20 pb-4"> 
+            <h1 class="text-5xl font-bold font-cinzel uppercase tracking-widest">{{ slide.title }}</h1> 
+        </div> 
+        <div class="mt-10 space-y-6">
+            {% for bullet in slide.bullets %}
+            <div class="italic font-lato text-2xl text-center">“{{ bullet }}”</div> 
+            {% endfor %}
+        </div>
+    </div>
+
+    {% elif design_id == 3 %}
+    <div class="w-full h-full bg-neutral-900 text-lime-400 font-mono p-12 relative overflow-hidden"> 
+        <div class="absolute inset-0 opacity-20" style="background-image: linear-gradient(rgba(132, 204, 22, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(132, 204, 22, 0.1) 1px, transparent 1px); background-size: 40px 40px;"></div> 
+        <div class="border-b border-lime-500/30 pb-4 mb-6 flex justify-between text-xs"> 
+            <span>terminal://{{ slide.title | lower | replace(' ', '_') }}.sh</span> 
+            <span>STATUS: ACTIVE</span> 
+        </div> 
+        <h1 class="text-5xl font-black text-white mb-8">> {{ slide.title }}</h1>
+        <div class="space-y-2">
+            {% for bullet in slide.bullets %}
+            <p class="text-lg">[DATA] {{ bullet }}</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    {% elif design_id == 4 %}
+    <div class="w-full h-full bg-white p-8 font-cursive relative flex items-center justify-center overflow-hidden"> 
+        <div class="absolute top-0 left-0 w-32 h-32 bg-pink-200 rounded-full opacity-70"></div> 
+        <div class="bg-white/90 border-2 border-white rounded-[3rem] p-10 shadow-xl text-center w-full max-w-4xl"> 
+            <h1 class="text-5xl font-black text-pink-500 mb-6">{{ slide.title }}</h1> 
+            <div class="space-y-4">
+                {% for bullet in slide.bullets %}
+                <p class="text-2xl text-slate-700 font-bold">✨ {{ bullet }}</p>
+                {% endfor %}
+            </div>
+        </div> 
+    </div>
+
+    {% elif design_id == 5 %}
+    <div class="w-full h-full bg-black text-cyan-400 font-mono p-8 border border-cyan-500/60 shadow-lg relative bg-circuit"> 
+        <div class="absolute inset-0 vhs-noise opacity-10"></div>
+        <div class="flex justify-between border-b border-cyan-900 pb-2 mb-4"> 
+            <span class="text-xl font-bold">CYBERNETIC OS v2.0</span> 
+            <span class="text-green-400 text-xs">● ONLINE</span> 
+        </div> 
+        <h1 class="text-4xl font-bold text-white tracking-tighter mb-8">> {{ slide.title }}</h1>
+        <div class="grid grid-cols-1 gap-4">
+            {% for bullet in slide.bullets %}
+            <div class="border-l-4 border-cyan-500 pl-4 py-2 bg-cyan-950/20">
+                {{ bullet }}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    {% elif design_id == 6 %}
+    <div class="w-full h-full bg-gradient-to-b from-sky-100 to-emerald-50 text-emerald-900 p-10 flex flex-col items-center justify-center font-quicksand"> 
+        <div class="bg-white/80 p-12 rounded-[2rem] border-4 border-white text-center w-full max-w-4xl shadow-sm"> 
+            <h1 class="text-5xl font-bold text-emerald-800 mb-6">{{ slide.title }}</h1> 
+            <div class="space-y-4">
+                {% for bullet in slide.bullets %}
+                <p class="text-xl text-stone-600 italic">🌿 {{ bullet }}</p>
+                {% endfor %}
+            </div>
+        </div> 
+    </div>
+
+    {% elif design_id == 7 %}
+    <div class="w-full h-full bg-[#1a0b2e] p-8 relative overflow-hidden flex flex-col justify-center font-audiowide"> 
+        <div class="absolute inset-x-0 bottom-0 h-[60%] opacity-40 retro-grid"></div> 
+        <h1 class="text-6xl font-black italic uppercase chrome-text skew-x-[-6deg] mb-8">{{ slide.title }}</h1>
+        <div class="relative z-10 space-y-4">
+            {% for bullet in slide.bullets %}
+            <p class="text-2xl font-bold text-cyan-300 italic tracking-wider font-pressstart">> {{ bullet }}</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    {% elif design_id == 8 %}
+    <div class="w-full h-full bg-[#0a0a0a] text-slate-200 p-12 relative flex flex-col justify-center text-center gold-border rounded-2xl font-lato"> 
+        <h1 class="text-6xl gold-text tracking-wide mb-4 font-cinzel">{{ slide.title }}</h1> 
+        <div class="w-24 h-[1px] bg-[#E0AA3E] mx-auto mb-8"></div> 
+        <div class="space-y-6">
+            {% for bullet in slide.bullets %}
+            <p class="text-2xl font-light tracking-widest uppercase">{{ bullet }}</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    {% elif design_id == 9 %}
+    <div class="w-full h-full bg-white p-12 flex flex-col justify-center border-t-8 border-blue-600"> 
+        <h2 class="text-5xl font-bold text-slate-800 mb-8 border-l-8 border-blue-500 pl-6">{{ slide.title }}</h2> 
+        <div class="space-y-4">
+            {% for bullet in slide.bullets %}
+            <p class="text-2xl text-slate-600">• {{ bullet }}</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    {% elif design_id == 10 %}
+    <div class="w-full h-full bg-zinc-950 text-white p-12 flex flex-col items-center justify-center border border-white/20 font-montserrat"> 
+        <span class="text-[10px] tracking-[0.3em] uppercase text-zinc-400 mb-4">Editorial Insight</span> 
+        <h1 class="text-6xl font-bold leading-tight text-center mb-6 font-playfair">{{ slide.title }}</h1> 
+        <div class="w-20 h-[1px] bg-white mb-8"></div> 
+        <div class="max-w-3xl text-center space-y-4">
+            {% for bullet in slide.bullets %}
+            <p class="text-xl font-light italic text-zinc-300">{{ bullet }}</p>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endfor %}
+
+</body>
+</html>

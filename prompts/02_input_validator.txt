@@ -1,0 +1,8 @@
+Check input for:
+- Topic presence
+- Plan presence
+- Language specified
+- Volume specified
+
+If any are missing, output ONLY:
+INPUT YETARLI EMAS

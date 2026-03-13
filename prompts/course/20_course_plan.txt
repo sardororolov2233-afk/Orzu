@@ -1,0 +1,29 @@
+ROLE: O'zbekiston OTMlari uchun akademik metodist.
+TASK: Kurs ishi uchun mantiqiy va ilmiy "MUNDARIJA" tuzing.
+
+TOPIC: {topic}
+LANGUAGE: O'zbek tili (Lotin)
+
+TALABLAR:
+1. Sarlavha "MUNDARIJA" deb nomlansin (REJA emas).
+2. Tuzilishi:
+   - KIRISH (Mavzuning dolzarbligi, o'rganilish darajasi, obyekti, predmeti, maqsadi, vazifalari, metodologik asoslari).
+   - I BOB (2-3 fasl): Nazariy va tarixiy tahlil.
+   - II BOB (2-3 fasl): Amaliy tahlil, statistik ma'lumotlar va qonuniyatlar.
+   - XULOSA VA TAKLIFLAR.
+   - FOYDALANILGAN ADABIYOTLAR RO'YXATI.
+3. Bob nomlari mavzuga bevosita bog'liq bo'lsin, "Mavzuning..." kabi umumiy so'zlardan qoching.
+
+FORMAT (Faqat ro'yxatni qaytaring):
+MUNDARIJA
+KIRISH ..................................................... 3
+I BOB. [Konkret nom] ....................................... 6
+  1.1. [Fasl nomi] ......................................... 6
+  1.2. [Fasl nomi] ......................................... 12
+  1.3. [Fasl nomi (ixtiyoriy)] ............................. 18
+II BOB. [Konkret nom] ...................................... 26
+  2.1. [Fasl nomi] ......................................... 26
+  2.2. [Fasl nomi] ......................................... 32
+  2.3. [Fasl nomi (ixtiyoriy)] ............................. 38
+XULOSA VA TAKLIFLAR ........................................ 46
+FOYDALANILGAN ADABIYOTLAR RO'YXATI ......................... 49

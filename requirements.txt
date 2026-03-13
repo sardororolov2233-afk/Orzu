@@ -1,0 +1,6 @@
+aiogram
+python-dotenv
+groq
+python-docx
+python-pptx
+aiohttp

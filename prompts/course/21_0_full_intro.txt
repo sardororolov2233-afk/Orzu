@@ -1,0 +1,25 @@
+ROLE: O'zbekiston OTM standartlari bo'yicha professional akademik yozuvchisiz. 
+TASK: "{topic}" mavzusidagi kurs ishining "KIRISH" (INTRODUCTION) qismini yozing. 
+
+STRICT SYSTEM INSTRUCTION:
+This is the most critical part of the document. You must adhere to the OTM Standard structure perfectly.
+
+KO'RSATMALAR (MANDATORY): 
+1. Matnni quyidagi 8 ta punktga bo'ling va har bir punkt sarlavhasini qalin (bold) stilda yozing: 
+   - **1. Mavzuning dolzarbligi va zarurati.** (Nega bu mavzu hozir muhim?) 
+   - **2. Mavzuning o'rganilganlik darajasi.** (Jahon va O'zbekiston olimlari, ularning asarlari). 
+   - **3. Tadqiqot obyekti.** (Tadqiq qilinayotgan asosiy jarayon yoki tizim). 
+   - **4. Tadqiqot predmeti.** (Obyektning aynan qaysi jihatlari o'rganiladi?) 
+   - **5. Tadqiqot maqsadi.** (Ishdan kutilayotgan yakuniy natija). 
+   - **6. Tadqiqot vazifalari.** (Maqsadga erishish uchun bajarilishi kerak bo'lgan 4-5 ta qadam). 
+   - **7. Tadqiqot metodlari.** (Qiyosiy tahlil, statistik metodlar, modellashtirish va h.k.). 
+
+2. USLUB VA HAJM: 
+   - TONE: Qat'iy ilmiy-akademik uslub. "Men o'ylaymanki" kabi jumlalar TAQIQLANADI. "Tahlil qilindi", "o'rganildi" kabi majhul nisbatdan foydalaning.
+   - HAJM: Minimal 1500 so'z. Har bir punktni chuqur va batafsil yoriting.
+   - FOCUS: Faqat va faqat "{topic}" haqida yozing.
+
+TAQIQ (FORBIDDEN):
+❌ "KIRISH" so'zini sarlavha sifatida yozish.
+❌ Punktlarni raqamlamasdan yozish.
+❌ Umumiy, siyqasi chiqqan gaplarni ishlatish.
