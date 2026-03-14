@@ -67,7 +67,7 @@ async def update_field_and_return(message: Message, state: FSMContext):
     
     # Save updated profile
     new_data = await state.get_data()
-    save_user_referat_data(message.from_user.id, new_data)
+    await save_user_referat_data(message.from_user.id, new_data)
     
     # Return to confirmation
     await show_confirmation(message, state)
@@ -156,7 +156,7 @@ async def process_lang(callback: CallbackQuery, state: FSMContext):
     
     # Save to DB for future auto-fill
     data = await state.get_data()
-    save_user_referat_data(callback.from_user.id, data)
+    await save_user_referat_data(callback.from_user.id, data)
     
     await show_confirmation(callback.message, state)
 
@@ -202,7 +202,7 @@ async def start_plan_generation(callback: CallbackQuery, state: FSMContext, bot:
     user_id = callback.from_user.id
     
     # Check balance
-    balance = get_user_balance(user_id)
+    balance = await get_user_balance(user_id)
     if balance < REFERAT_PRICE:
         await callback.answer(f"❌ Balansingizda mablag' yetarli emas!\nKerak: {REFERAT_PRICE} so'm\nMavjud: {balance} so'm", show_alert=True)
         return
@@ -224,7 +224,7 @@ async def start_plan_generation(callback: CallbackQuery, state: FSMContext, bot:
     
     # Save plan to DB for recovery
     current_data = await state.get_data()
-    save_user_referat_data(callback.from_user.id, current_data)
+    await save_user_referat_data(callback.from_user.id, current_data)
     
     await state.set_state(ReferatState.waiting_for_plan_approval)
     
@@ -317,8 +317,8 @@ async def generate_full_content(callback: CallbackQuery, state: FSMContext):
     lang = data.get('til', "O'zbek")
     
     # Deduct balance and log action
-    update_user_balance(user_id, -REFERAT_PRICE)
-    log_user_action(user_id, 'referat', amount=REFERAT_PRICE)
+    await update_user_balance(user_id, -REFERAT_PRICE)
+    await log_user_action(user_id, 'referat', amount=REFERAT_PRICE)
 
     # --- Logic Analysis & Improvement ---
     # User Feedback: Strict page calculation causes logical issues and poor quality.

@@ -20,7 +20,7 @@ class PaymentState(StatesGroup):
 
 @router.message(F.text == "💳 Balans")
 async def balance_handler(message: Message):
-    balance = get_user_balance(message.from_user.id)
+    balance = await get_user_balance(message.from_user.id)
     
     await message.answer(
         f"💳 Sizning hisobingizda: {balance} so'm\n\n"
@@ -30,7 +30,7 @@ async def balance_handler(message: Message):
 
 @router.callback_query(F.data == "payment")
 async def payment_start_callback(callback: CallbackQuery):
-    balance = get_user_balance(callback.from_user.id)
+    balance = await get_user_balance(callback.from_user.id)
     
     await callback.message.edit_text(
         f"💳 Sizning hisobingizda: {balance} so'm\n\n"
@@ -87,7 +87,7 @@ async def process_receipt(message: Message, state: FSMContext, bot: Bot):
     receipt_file_id = message.photo[-1].file_id
     
     # Bazaga pending payment sifatida saqlash
-    payment_id = create_pending_payment(
+    payment_id = await create_pending_payment(
         user_id=user.id,
         amount=amount,
         receipt_file_id=receipt_file_id,
@@ -134,7 +134,7 @@ async def approve_payment(callback: CallbackQuery, bot: Bot):
     payment_id = int(parts[1])
     
     # Bazadan to'lov ma'lumotlarini olish va statusni yangilash
-    result = approve_pending_payment(payment_id)
+    result = await approve_pending_payment(payment_id)
     
     if not result:
         await callback.answer("❌ Bu to'lov allaqachon ko'rib chiqilgan!", show_alert=True)
@@ -144,10 +144,11 @@ async def approve_payment(callback: CallbackQuery, bot: Bot):
     amount = result["amount"]
     
     # Balansni yangilash — FAQAT admin tasdiqlangandan keyin!
-    new_balance = update_user_balance(user_id, amount)
+    await update_user_balance(user_id, amount)
+    new_balance = await get_user_balance(user_id)
     
     if new_balance is not None:
-        log_user_action(user_id, 'topup', amount=amount)
+        await log_user_action(user_id, 'topup', amount=amount)
         await callback.message.edit_caption(
             caption=f"{callback.message.caption}\n\n✅ TASDIQLANDI ✅\n💰 Yangi balans: {new_balance} so'm"
         )
@@ -169,7 +170,16 @@ async def reject_payment(callback: CallbackQuery, bot: Bot):
     parts = callback.data.split("_")
     payment_id = int(parts[1])
     
-    result = reject_pending_payment(payment_id)
+    # result = await reject_pending_payment(payment_id)
+    # Note: reject_pending_payment not fully implemented in new module, using update status
+    from database import supabase
+    result_data = supabase.table("payments").select("*").eq("id", payment_id).execute()
+    if not result_data.data or result_data.data[0]["status"] != "pending":
+        await callback.answer("❌ Bu to'lov allaqachon ko'rib chiqilgan!", show_alert=True)
+        return
+    
+    result = result_data.data[0]
+    supabase.table("payments").update({"status": "rejected"}).eq("id", payment_id).execute()
     
     if not result:
         await callback.answer("❌ Bu to'lov allaqachon ko'rib chiqilgan!", show_alert=True)

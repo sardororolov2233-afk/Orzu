@@ -27,11 +27,19 @@ logger = logging.getLogger(__name__)
 # Set aiogram logger to DEBUG to see polling details
 logging.getLogger("aiogram").setLevel(logging.DEBUG)
 
-from database import init_db
+from database import create_or_update_user
 
 async def start_handler_local(message: Message):
     logger.info(f"🔵 /start buyrugu. Foydalanuvchi: {message.from_user.id}")
     try:
+        # Register/Update user in Supabase
+        user_data = {
+            "first_name": message.from_user.first_name,
+            "last_name": message.from_user.last_name,
+            "username": message.from_user.username,
+        }
+        await create_or_update_user(message.from_user.id, user_data)
+        
         await message.answer(
             "👋 Assalomu alaykum!\n\n"
             "📚 Referat, taqdimot, kurs va diplom ishlarini "
@@ -72,13 +80,8 @@ async def main():
     """Bot-ni ishga tushirish"""
     try:
         logger.info("🎬 Bot startup sequence started...")
-        # Initialize Database
-        logger.info("🗄 Initializing database...")
-        try:
-           init_db()
-           logger.info("✅ Database initialized.")
-        except Exception as db_e:
-           logger.error(f"❌ Database error: {db_e}")
+        # Database initialization removed (using Supabase)
+        logger.info("🗄 Unified Supabase database module loaded.")
         
         # Bot va Dispatcher yaratish
         logger.info("🤖 Creating bot and dispatcher instances...")
