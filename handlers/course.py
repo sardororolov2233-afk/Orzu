@@ -58,7 +58,7 @@ async def update_field_and_return(message: Message, state: FSMContext):
     # Save updated profile
     data = await state.get_data()
     # No need to combine kurs_guruh manually, save_user_profile handles separate fields now
-    save_user_profile(message.from_user.id, data)
+    await save_user_profile(message.from_user.id, data)
     
     # Return to confirmation
     await show_course_confirmation(message, state)
@@ -234,7 +234,7 @@ async def get_tema(message: Message, state: FSMContext):
     await state.update_data(tema=message.text)
     
     # Check for existing profile data
-    user_data = get_user_profile(message.from_user.id)
+    user_data = await get_user_profile(message.from_user.id)
     if user_data:
         # Get separate fields or split kurs_guruh if needed
         kurs = user_data.get('kurs')
@@ -320,7 +320,7 @@ async def get_til(callback: CallbackQuery, state: FSMContext):
     # Save to DB
     data = await state.get_data()
     data['kurs_guruh'] = f"{data.get('kurs', '')} {data.get('guruh', '')}".strip()
-    save_user_profile(callback.from_user.id, data)
+    await save_user_profile(callback.from_user.id, data)
     
     await show_course_confirmation(callback.message, state)
 
@@ -329,7 +329,7 @@ async def start_course_generation(callback: CallbackQuery, state: FSMContext):
     user_id = callback.from_user.id
     
     # Check balance
-    balance = get_user_balance(user_id)
+    balance = await get_user_balance(user_id)
     if balance < COURSE_PRICE:
         await callback.answer(f"❌ Balansingizda mablag' yetarli emas!\nKerak: {COURSE_PRICE} so'm\nMavjud: {balance} so'm", show_alert=True)
         return
@@ -432,8 +432,8 @@ async def approve_course_plan(callback: CallbackQuery, state: FSMContext):
     if word_file:
         user_id = callback.from_user.id
         # Deduct balance and log action
-        update_user_balance(user_id, -COURSE_PRICE)
-        log_user_action(user_id, 'course_work', amount=COURSE_PRICE)
+        await update_user_balance(user_id, -COURSE_PRICE)
+        await log_user_action(user_id, 'course_work', amount=COURSE_PRICE)
         
         # Send document
         doc = FSInputFile(word_file)

@@ -135,8 +135,25 @@ async def reject_pending_payment(payment_id: str) -> Optional[Dict[str, Any]]:
         supabase.table("payments").update({"status": "rejected"}).eq("id", payment_id).execute()
         return payment
     except Exception as e:
-        logger.error(f"Error rejecting payment {payment_id}: {e}")
-        return None
+        logger.error(f"Error rejecting payment {payment_id}: {e}")        return None
+
+async def get_pending_payments_count() -> int:
+    """Get the number of pending payments."""
+    try:
+        response = supabase.table("payments").select("count", count="exact").eq("status", "pending").execute()
+        return response.count if response.count is not None else 0
+    except Exception as e:
+        logger.error(f"Error getting pending payments count: {e}")
+        return 0
+
+async def get_pending_payments_list() -> List[Dict[str, Any]]:
+    """Get list of all pending payments."""
+    try:
+        response = supabase.table("payments").select("*").eq("status", "pending").execute()
+        return response.data if response.data else []
+    except Exception as e:
+        logger.error(f"Error getting pending payments list: {e}")
+        return []
 
 # ──────────────────────────────────────────────────────────────
 # Statistics

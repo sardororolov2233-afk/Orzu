@@ -20,8 +20,8 @@ async def admin_panel_handler(message: Message):
         return
 
     try:
-        stats = get_admin_stats()
-        pending_count = get_pending_payments_count()
+        stats = await get_admin_stats()
+        pending_count = await get_pending_payments_count()
         
         if not stats:
             await message.answer("❌ Statistikani yuklashda xatolik yuz berdi (bazadan ma'lumot kelmadi).")
