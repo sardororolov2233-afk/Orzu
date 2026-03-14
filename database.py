@@ -135,7 +135,8 @@ async def reject_pending_payment(payment_id: str) -> Optional[Dict[str, Any]]:
         supabase.table("payments").update({"status": "rejected"}).eq("id", payment_id).execute()
         return payment
     except Exception as e:
-        logger.error(f"Error rejecting payment {payment_id}: {e}")        return None
+        logger.error(f"Error rejecting payment {payment_id}: {e}")
+        return None
 
 async def get_pending_payments_count() -> int:
     """Get the number of pending payments."""
