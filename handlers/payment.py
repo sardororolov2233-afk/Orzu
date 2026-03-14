@@ -170,16 +170,7 @@ async def reject_payment(callback: CallbackQuery, bot: Bot):
     parts = callback.data.split("_")
     payment_id = int(parts[1])
     
-    # result = await reject_pending_payment(payment_id)
-    # Note: reject_pending_payment not fully implemented in new module, using update status
-    from database import supabase
-    result_data = supabase.table("payments").select("*").eq("id", payment_id).execute()
-    if not result_data.data or result_data.data[0]["status"] != "pending":
-        await callback.answer("❌ Bu to'lov allaqachon ko'rib chiqilgan!", show_alert=True)
-        return
-    
-    result = result_data.data[0]
-    supabase.table("payments").update({"status": "rejected"}).eq("id", payment_id).execute()
+    result = await reject_pending_payment(payment_id)
     
     if not result:
         await callback.answer("❌ Bu to'lov allaqachon ko'rib chiqilgan!", show_alert=True)

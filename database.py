@@ -119,6 +119,25 @@ async def approve_pending_payment(payment_id: str) -> Optional[Dict[str, Any]]:
         logger.error(f"Error approving payment {payment_id}: {e}")
         return None
 
+async def reject_pending_payment(payment_id: str) -> Optional[Dict[str, Any]]:
+    """Reject a pending payment."""
+    try:
+        # Get payment info
+        response = supabase.table("payments").select("*").eq("id", payment_id).execute()
+        if not response.data:
+            return None
+        
+        payment = response.data[0]
+        if payment["status"] != "pending":
+            return None
+
+        # Update payment status
+        supabase.table("payments").update({"status": "rejected"}).eq("id", payment_id).execute()
+        return payment
+    except Exception as e:
+        logger.error(f"Error rejecting payment {payment_id}: {e}")
+        return None
+
 # ──────────────────────────────────────────────────────────────
 # Statistics
 # ──────────────────────────────────────────────────────────────
