@@ -19,7 +19,8 @@ from pathlib import Path
 import os
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.types.web_app_info import WebAppInfo
-WEBAPP_URL = os.getenv("FRONTEND_URL", "https://yordamchi-ai-murex.vercel.app/")
+WEBAPP_URL = os.getenv("FRONTEND_URL", "https://orzu-two.vercel.app/")
+
 
 logger = logging.getLogger(__name__)
 
