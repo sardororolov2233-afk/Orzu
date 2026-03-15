@@ -11,6 +11,7 @@ class ReferatState(StatesGroup):
     kurs_guruh = State()
     til = State()
     confirmation = State()
+    tariff_selection = State()
     waiting_for_plan_approval = State()
     # Edit mode states
     edit_mode = State()
@@ -42,6 +43,7 @@ class CourseWorkState(StatesGroup):
     guruh = State()
     til = State()
     confirmation = State()
+    tariff_selection = State()
     waiting_for_plan_approval = State()
     # Edit mode states
     edit_mode = State()

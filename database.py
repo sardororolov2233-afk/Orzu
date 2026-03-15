@@ -1,5 +1,6 @@
 import os
 import logging
+import asyncio
 from typing import Optional, List, Dict, Any
 from dotenv import load_dotenv
 from supabase import create_client, Client
@@ -24,7 +25,7 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 async def get_user(user_id: int) -> Optional[Dict[str, Any]]:
     """Get user by telegram_id."""
     try:
-        response = supabase.table("users").select("*").eq("telegram_id", user_id).execute()
+        response = await asyncio.to_thread(supabase.table("users").select("*").eq("telegram_id", user_id).execute)
         if response.data:
             return response.data[0]
         return None
@@ -39,11 +40,11 @@ async def create_or_update_user(user_id: int, data: Dict[str, Any]) -> bool:
         user = await get_user(user_id)
         if user:
             # Update
-            supabase.table("users").update(data).eq("telegram_id", user_id).execute()
+            await asyncio.to_thread(supabase.table("users").update(data).eq("telegram_id", user_id).execute)
         else:
             # Insert
             insert_data = {"telegram_id": user_id, **data}
-            supabase.table("users").insert(insert_data).execute()
+            await asyncio.to_thread(supabase.table("users").insert(insert_data).execute)
         return True
     except Exception as e:
         logger.error(f"Error saving user {user_id}: {e}")
@@ -88,7 +89,7 @@ async def create_pending_payment(user_id: int, amount: int, receipt_file_id: str
             "full_name": full_name,
             "status": "pending"
         }
-        response = supabase.table("payments").insert(data).execute()
+        response = await asyncio.to_thread(supabase.table("payments").insert(data).execute)
         if response.data:
             return response.data[0].get("id")
         return None
@@ -100,7 +101,7 @@ async def approve_pending_payment(payment_id: str) -> Optional[Dict[str, Any]]:
     """Approve a pending payment."""
     try:
         # Get payment info
-        response = supabase.table("payments").select("*").eq("id", payment_id).execute()
+        response = await asyncio.to_thread(supabase.table("payments").select("*").eq("id", payment_id).execute)
         if not response.data:
             return None
         
@@ -112,7 +113,7 @@ async def approve_pending_payment(payment_id: str) -> Optional[Dict[str, Any]]:
         success = await update_user_balance(payment["user_id"], payment["amount"])
         if success:
             # Update payment status
-            supabase.table("payments").update({"status": "completed"}).eq("id", payment_id).execute()
+            await asyncio.to_thread(supabase.table("payments").update({"status": "completed"}).eq("id", payment_id).execute)
             return payment
         return None
     except Exception as e:
@@ -123,7 +124,7 @@ async def reject_pending_payment(payment_id: str) -> Optional[Dict[str, Any]]:
     """Reject a pending payment."""
     try:
         # Get payment info
-        response = supabase.table("payments").select("*").eq("id", payment_id).execute()
+        response = await asyncio.to_thread(supabase.table("payments").select("*").eq("id", payment_id).execute)
         if not response.data:
             return None
         
@@ -132,7 +133,7 @@ async def reject_pending_payment(payment_id: str) -> Optional[Dict[str, Any]]:
             return None
 
         # Update payment status
-        supabase.table("payments").update({"status": "rejected"}).eq("id", payment_id).execute()
+        await asyncio.to_thread(supabase.table("payments").update({"status": "rejected"}).eq("id", payment_id).execute)
         return payment
     except Exception as e:
         logger.error(f"Error rejecting payment {payment_id}: {e}")
@@ -141,7 +142,7 @@ async def reject_pending_payment(payment_id: str) -> Optional[Dict[str, Any]]:
 async def get_pending_payments_count() -> int:
     """Get the number of pending payments."""
     try:
-        response = supabase.table("payments").select("count", count="exact").eq("status", "pending").execute()
+        response = await asyncio.to_thread(supabase.table("payments").select("count", count="exact").eq("status", "pending").execute)
         return response.count if response.count is not None else 0
     except Exception as e:
         logger.error(f"Error getting pending payments count: {e}")
@@ -150,7 +151,7 @@ async def get_pending_payments_count() -> int:
 async def get_pending_payments_list() -> List[Dict[str, Any]]:
     """Get list of all pending payments."""
     try:
-        response = supabase.table("payments").select("*").eq("status", "pending").execute()
+        response = await asyncio.to_thread(supabase.table("payments").select("*").eq("status", "pending").execute)
         return response.data if response.data else []
     except Exception as e:
         logger.error(f"Error getting pending payments list: {e}")
@@ -168,7 +169,7 @@ async def log_user_action(user_id: int, action_type: str, amount: int = 0):
             "action_type": action_type,
             "amount": amount
         }
-        supabase.table("statistics").insert(data).execute()
+        await asyncio.to_thread(supabase.table("statistics").insert(data).execute)
     except Exception as e:
         logger.error(f"Error logging action for {user_id}: {e}")
 
@@ -176,16 +177,16 @@ async def get_admin_stats() -> Dict[str, Any]:
     """Get general statistics for admin."""
     try:
         # Total users
-        users_resp = supabase.table("users").select("count", count="exact").execute()
+        users_resp = await asyncio.to_thread(supabase.table("users").select("count", count="exact").execute)
         total_users = users_resp.count if users_resp.count is not None else 0
 
         # Total revenue (completed payments)
-        payments_resp = supabase.table("payments").select("amount").eq("status", "completed").execute()
+        payments_resp = await asyncio.to_thread(supabase.table("payments").select("amount").eq("status", "completed").execute)
         total_revenue = sum(p["amount"] for p in payments_resp.data) if payments_resp.data else 0
 
         # Actions today
         # Note: Ideally filter by date, for now simple count
-        stats_resp = supabase.table("statistics").select("count", count="exact").execute()
+        stats_resp = await asyncio.to_thread(supabase.table("statistics").select("count", count="exact").execute)
         total_actions = stats_resp.count if stats_resp.count is not None else 0
 
         return {

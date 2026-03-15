@@ -5,7 +5,7 @@ main_menu = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="📄 Referat yaratish"), KeyboardButton(text="📊 Taqdimot yaratish")],
         [KeyboardButton(text="Kurs ishi"), KeyboardButton(text="💰 Tayyor ishlar")],
-        [KeyboardButton(text="💳 Balans"), KeyboardButton(text="⚙️ Sozlamalar")],
+        [KeyboardButton(text="💳 Balans"), KeyboardButton(text="🆘 Yordam")],
     ],
     resize_keyboard=True
 )
@@ -24,15 +24,28 @@ ai_models_kb = InlineKeyboardMarkup(
     ]
 )
 
+# Obuna tekshirish klaviaturasi
+subscribe_channel_kb = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [InlineKeyboardButton(text="📢 Kanalga obuna bo'lish", url="https://t.me/yordamch_AI")],
+        [InlineKeyboardButton(text="✅ Tasdiqlash", callback_data="check_subscription")]
+    ]
+)
+
 # Hisobni to'ldirish inline tugmalari
 payment_keyboard = InlineKeyboardMarkup(
     inline_keyboard=[
         [
             InlineKeyboardButton(text="10 000 so'm", callback_data="pay_10000"),
+            InlineKeyboardButton(text="15 000 so'm", callback_data="pay_15000"),
+        ],
+        [
+            InlineKeyboardButton(text="20 000 so'm", callback_data="pay_20000"),
             InlineKeyboardButton(text="25 000 so'm", callback_data="pay_25000"),
         ],
         [
             InlineKeyboardButton(text="30 000 so'm", callback_data="pay_30000"),
+            InlineKeyboardButton(text="50 000 so'm", callback_data="pay_50000"),
         ],
         [
             InlineKeyboardButton(text="⬅️ Orqaga", callback_data="back_main"),
@@ -214,6 +227,15 @@ referat_edit_selection_kb = InlineKeyboardMarkup(
     ]
 )
 
+# Referat Tariflarini tanlash
+referat_tariff_kb = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [InlineKeyboardButton(text="Oddiy (8 000 so'm)", callback_data="ref_tariff_oddiy")],
+        [InlineKeyboardButton(text="PRO (14 900 so'm) 🔥", callback_data="ref_tariff_pro")],
+        [InlineKeyboardButton(text="⬅️ Ortga", callback_data="tariff_referat_back")]
+    ]
+)
+
 # Kurs ishi tasdiqlash uchun inline tugmalar
 course_confirm_inline_kb = InlineKeyboardMarkup(
     inline_keyboard=[
@@ -243,6 +265,15 @@ course_edit_selection_kb = InlineKeyboardMarkup(
     ]
 )
 
+# Kurs ishi Tariflarini tanlash
+course_tariff_kb = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [InlineKeyboardButton(text="Oddiy (15 000 so'm)", callback_data="course_tariff_oddiy")],
+        [InlineKeyboardButton(text="PRO (29 900 so'm) 🔥", callback_data="course_tariff_pro")],
+        [InlineKeyboardButton(text="⬅️ Ortga", callback_data="tariff_course_back")]
+    ]
+)
+
 
 
 # Referat Reja tasdiqlash uchun
@@ -268,5 +299,6 @@ __all__ = [
     "presentation_confirm_inline_kb", "template_selection_kb", 
     "language_selection_kb", "referat_confirm_inline_kb", "referat_edit_selection_kb",
     "course_confirm_inline_kb", "course_edit_selection_kb",
-    "referat_type_kb", "referat_plan_approval_kb", "course_plan_approval_kb"
+    "referat_type_kb", "referat_plan_approval_kb", "course_plan_approval_kb",
+    "subscribe_channel_kb", "referat_tariff_kb", "course_tariff_kb"
 ]

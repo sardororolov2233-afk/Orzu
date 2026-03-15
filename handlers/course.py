@@ -4,7 +4,7 @@ from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery, FSInputFile
 from aiogram.fsm.context import FSMContext
 from states import CourseWorkState
-from keyboards import main_menu, course_confirm_inline_kb, course_edit_selection_kb, language_selection_kb, course_plan_approval_kb
+from keyboards import main_menu, course_confirm_inline_kb, course_edit_selection_kb, language_selection_kb, course_plan_approval_kb, course_tariff_kb
 
 from ai.brain import ask_ai, load_prompt, MODEL_SMART, MODEL_RESERVE
 from database import save_user_profile, get_user_profile, get_user_balance, update_user_balance, log_user_action
@@ -325,13 +325,33 @@ async def get_til(callback: CallbackQuery, state: FSMContext):
     await show_course_confirmation(callback.message, state)
 
 @router.callback_query(CourseWorkState.confirmation, F.data == "course_confirm")
+async def ask_course_tariff(callback: CallbackQuery, state: FSMContext):
+    await callback.message.edit_text(
+        "<b>Ta'rifni tanlang:</b>\n\n"
+        "🔹 <b>Oddiy</b> (15 000 so'm) - Standart sifatdagi kurs ishi.\n"
+        "🔥 <b>PRO</b> (29 900 so'm) - Yuqori sifatli, chuqur tahliliy va ilmiy akademik kurs ishi.",
+        reply_markup=course_tariff_kb,
+        parse_mode="HTML"
+    )
+    await state.set_state(CourseWorkState.tariff_selection)
+
+@router.callback_query(CourseWorkState.tariff_selection, F.data == "tariff_course_back")
+async def course_tariff_back(callback: CallbackQuery, state: FSMContext):
+    # Need to delete the old message or edit it back to confirmation format
+    await callback.message.delete()
+    await show_course_confirmation(callback.message, state)
+
+@router.callback_query(CourseWorkState.tariff_selection, F.data.in_({"course_tariff_oddiy", "course_tariff_pro"}))
 async def start_course_generation(callback: CallbackQuery, state: FSMContext):
     user_id = callback.from_user.id
     
+    price = 15000 if callback.data == "course_tariff_oddiy" else 29900
+    await state.update_data(tariff_price=price)
+    
     # Check balance
     balance = await get_user_balance(user_id)
-    if balance < COURSE_PRICE:
-        await callback.answer(f"❌ Balansingizda mablag' yetarli emas!\nKerak: {COURSE_PRICE} so'm\nMavjud: {balance} so'm", show_alert=True)
+    if balance < price:
+        await callback.answer(f"❌ Balansingizda mablag' yetarli emas!\nKerak: {price} so'm\nMavjud: {balance} so'm", show_alert=True)
         return
 
     await callback.message.delete()
@@ -339,7 +359,7 @@ async def start_course_generation(callback: CallbackQuery, state: FSMContext):
     processing_msg = await callback.message.answer(
         f"⏳ AI Kurs ishingizni yozishni boshladi...\n"
         f"Bu jarayon 3-5 daqiqa vaqt oladi. Iltimos kuting.\n"
-        f"<i>(Balansingizdan {COURSE_PRICE} so'm yechiladi)</i>",
+        f"<i>(Balansingizdan {price} so'm yechiladi)</i>",
         parse_mode="HTML"
     )
 
@@ -431,9 +451,10 @@ async def approve_course_plan(callback: CallbackQuery, state: FSMContext):
     
     if word_file:
         user_id = callback.from_user.id
+        price = data.get('tariff_price', COURSE_PRICE)
         # Deduct balance and log action
-        await update_user_balance(user_id, -COURSE_PRICE)
-        await log_user_action(user_id, 'course_work', amount=COURSE_PRICE)
+        await update_user_balance(user_id, -price)
+        await log_user_action(user_id, 'course_work', amount=price)
         
         # Send document
         doc = FSInputFile(word_file)

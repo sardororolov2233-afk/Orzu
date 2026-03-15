@@ -10,7 +10,7 @@ from states import ReferatState
 from keyboards import (
     main_menu, referat_type_kb, referat_confirm_inline_kb, 
     referat_edit_selection_kb, language_selection_kb, 
-    referat_plan_approval_kb
+    referat_plan_approval_kb, referat_tariff_kb
 )
 from utils.referat_doc import create_referat_document
 from database import save_user_referat_data, get_user_referat_data, get_user_balance, update_user_balance, log_user_action
@@ -198,13 +198,31 @@ async def cancel_referat(callback: CallbackQuery, state: FSMContext):
     await state.clear()
 
 @router.callback_query(ReferatState.confirmation, F.data == "referat_confirm")
+async def ask_referat_tariff(callback: CallbackQuery, state: FSMContext):
+    await callback.message.edit_text(
+        "<b>Ta'rifni tanlang:</b>\n\n"
+        "🔹 <b>Oddiy</b> (8 000 so'm) - Standart sifatdagi referat yoki mustaqil ish.\n"
+        "🔥 <b>PRO</b> (14 900 so'm) - Yuqori sifatli, chuqur tahliliy referat.",
+        reply_markup=referat_tariff_kb,
+        parse_mode="HTML"
+    )
+    await state.set_state(ReferatState.tariff_selection)
+
+@router.callback_query(ReferatState.tariff_selection, F.data == "tariff_referat_back")
+async def referat_tariff_back(callback: CallbackQuery, state: FSMContext):
+    await show_confirmation(callback.message, state)
+
+@router.callback_query(ReferatState.tariff_selection, F.data.in_({"ref_tariff_oddiy", "ref_tariff_pro"}))
 async def start_plan_generation(callback: CallbackQuery, state: FSMContext, bot: Bot):
-    user_id = callback.from_user.id
+    user_id = callback.fromuser.id if hasattr(callback, 'fromuser') else callback.from_user.id
+    
+    price = 8000 if callback.data == "ref_tariff_oddiy" else 14900
+    await state.update_data(tariff_price=price)
     
     # Check balance
     balance = await get_user_balance(user_id)
-    if balance < REFERAT_PRICE:
-        await callback.answer(f"❌ Balansingizda mablag' yetarli emas!\nKerak: {REFERAT_PRICE} so'm\nMavjud: {balance} so'm", show_alert=True)
+    if balance < price:
+        await callback.answer(f"❌ Balansingizda mablag' yetarli emas!\nKerak: {price} so'm\nMavjud: {balance} so'm", show_alert=True)
         return
 
     await callback.message.edit_text("⏳ <b>REJA TUZILMOQDA...</b>\n\nIltimos kuting, bu 10-15 soniya vaqt olishi mumkin.", parse_mode="HTML")
@@ -304,21 +322,23 @@ async def cancel_plan(callback: CallbackQuery, state: FSMContext):
 @router.callback_query(ReferatState.waiting_for_plan_approval, F.data == "plan_approve")
 async def generate_full_content(callback: CallbackQuery, state: FSMContext):
     logger.info(f"Referat generation started for user {callback.from_user.id}")
+    user_id = callback.from_user.id
+    data = await state.get_data()
+    price = data.get('tariff_price', REFERAT_PRICE)
+    
     await callback.message.edit_text(
         f"Ishingiz tayyor bo'lishini kuting, taxminiy vaqt 5 daqiqa.\n"
-        f"<i>(Balansingizdan {REFERAT_PRICE} so'm yechiladi)</i>", 
+        f"<i>(Balansingizdan {price} so'm yechiladi)</i>", 
         parse_mode="HTML"
     )
     
-    user_id = callback.from_user.id
-    data = await state.get_data()
     plan = data.get('plan')
     tema = data.get('tema')
     lang = data.get('til', "O'zbek")
     
     # Deduct balance and log action
-    await update_user_balance(user_id, -REFERAT_PRICE)
-    await log_user_action(user_id, 'referat', amount=REFERAT_PRICE)
+    await update_user_balance(user_id, -price)
+    await log_user_action(user_id, 'referat', amount=price)
 
     # --- Logic Analysis & Improvement ---
     # User Feedback: Strict page calculation causes logical issues and poor quality.
@@ -484,7 +504,7 @@ async def generate_full_content(callback: CallbackQuery, state: FSMContext):
 # ---------------------------------------------------------
 
 # Handle expired sessions (when state is lost but user clicks buttons)
-@router.callback_query(F.data.in_({"plan_approve", "plan_regenerate", "plan_cancel", "referat_confirm", "referat_edit", "referat_cancel"}))
+@router.callback_query(F.data.in_({"plan_approve", "plan_regenerate", "plan_cancel", "referat_confirm", "referat_edit", "referat_cancel", "ref_tariff_oddiy", "ref_tariff_pro", "tariff_referat_back"}))
 async def handle_expired_session(callback: CallbackQuery, state: FSMContext):
     # Try to recover from DB
     user_data = get_user_referat_data(callback.from_user.id)
@@ -501,8 +521,10 @@ async def handle_expired_session(callback: CallbackQuery, state: FSMContext):
         # Restore specific state based on button context (best effort)
         if callback.data in ["plan_approve", "plan_regenerate", "plan_cancel"]:
             await state.set_state(ReferatState.waiting_for_plan_approval)
-        elif callback.data in ["referat_confirm", "referat_edit", "referat_cancel"]:
+        elif callback.data in ["referat_confirm", "referat_edit", "referat_cancel", "tariff_referat_back"]:
             await state.set_state(ReferatState.confirmation)
+        elif callback.data in ["ref_tariff_oddiy", "ref_tariff_pro"]:
+            await state.set_state(ReferatState.tariff_selection)
             
         await callback.message.answer(
             "🔄 <b>Sessiya qayta tiklandi!</b>\n\n"

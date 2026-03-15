@@ -42,8 +42,11 @@ async def payment_start_callback(callback: CallbackQuery):
 async def payment_amount_selected(callback: CallbackQuery, state: FSMContext):
     amount_map = {
         "pay_10000": 10000,
+        "pay_15000": 15000,
+        "pay_20000": 20000,
         "pay_25000": 25000,
-        "pay_30000": 30000
+        "pay_30000": 30000,
+        "pay_50000": 50000,
     }
     
     amount = amount_map.get(callback.data)

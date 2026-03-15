@@ -11,8 +11,9 @@ sys.path.insert(0, str(Path(__file__).parent))
 from aiogram import Bot, Dispatcher, F
 from aiogram.types import Message
 from aiogram.filters import CommandStart, Command
+from aiogram.types import CallbackQuery
 from config import BOT_TOKEN, ADMIN_ID
-from keyboards import main_menu
+from keyboards import main_menu, subscribe_channel_kb
 
 # Import routers
 from handlers import referat, presentation, course, ready_works, payment, admin
@@ -29,9 +30,30 @@ logging.getLogger("aiogram").setLevel(logging.DEBUG)
 
 from database import create_or_update_user
 
-async def start_handler_local(message: Message):
+CHANNEL_USERNAME = "@yordamch_AI"
+
+async def check_user_subscription(bot: Bot, user_id: int) -> bool:
+    try:
+        member = await bot.get_chat_member(chat_id=CHANNEL_USERNAME, user_id=user_id)
+        if member.status in ['member', 'administrator', 'creator']:
+            return True
+        return False
+    except Exception as e:
+        logger.warning(f"Failed to check subscription for {user_id}: {e}")
+        return False
+
+async def start_handler_local(message: Message, bot: Bot):
     logger.info(f"🔵 /start buyrugu. Foydalanuvchi: {message.from_user.id}")
     try:
+        is_subbed = await check_user_subscription(bot, message.from_user.id)
+        if not is_subbed:
+            await message.answer(
+                "❌ Botdan foydalanish uchun rasmiy kanalimizga a'zo bo'lishingiz majburiy!\n\n"
+                "Iltimos, avval kanalga obuna bo'ling, so'ng 'Tasdiqlash' tugmasini bosing.",
+                reply_markup=subscribe_channel_kb
+            )
+            return
+
         # Register/Update user in Supabase
         user_data = {
             "first_name": message.from_user.first_name,
@@ -97,9 +119,36 @@ async def main():
         async def back_to_main(message: Message):
             await message.answer("Asosiy menyu:", reply_markup=main_menu)
 
-        @dp.message(F.text == "⚙️ Sozlamalar")
+        @dp.callback_query(F.data == "check_subscription")
+        async def check_sub_callback(callback: CallbackQuery, bot: Bot):
+            is_subbed = await check_user_subscription(bot, callback.from_user.id)
+            if is_subbed:
+                await callback.message.delete()
+                # Run the normal start flow
+                user_data = {
+                    "first_name": callback.from_user.first_name,
+                    "last_name": callback.from_user.last_name,
+                    "username": callback.from_user.username,
+                }
+                await create_or_update_user(callback.from_user.id, user_data)
+                await callback.message.answer(
+                    "✅ Obuna tasdiqlandi!\n\n"
+                    "👋 Assalomu alaykum!\n\n"
+                    "📚 Referat, taqdimot, kurs va diplom ishlarini sun'iy intellekt yordamida tayyorlab beramiz.\n\n"
+                    "Quyidagilardan birini tanlang 👇",
+                    reply_markup=main_menu
+                )
+            else:
+                await callback.answer("❌ Hali obuna bo'lmadingiz. Iltimos kanalga o'tib obuna bo'ling!", show_alert=True)
+
+        @dp.message(F.text == "🆘 Yordam")
         async def settings_handler(message: Message):
-             await message.answer("Sozlamalar bo'limi tez orada ishga tushadi.", reply_markup=main_menu)
+             await message.answer(
+                "💬 Yordam xizmati\n\n"
+                "Qo'shimcha savollar yoki muammolar yuzasidan administrator bilan bog'laning:\n"
+                "👨‍💻 @sardorbekuralov", 
+                reply_markup=main_menu
+             )
 
         # Routerni ulash
         dp.include_router(admin.router)

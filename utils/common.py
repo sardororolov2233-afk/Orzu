@@ -11,7 +11,7 @@ MAIN_MENU_COMMANDS = [
     "Kurs ishi", 
     "💰 Tayyor ishlar", 
     "💳 Balans", 
-    "⚙️ Sozlamalar",
+    "🆘 Yordam",
     "/start",
     "/menu",
     "/presentation",
