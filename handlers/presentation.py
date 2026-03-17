@@ -1,7 +1,7 @@
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery, FSInputFile
 from aiogram.fsm.context import FSMContext
-from states import PresentationState
+
 from keyboards import (
     main_menu, presentation_confirm_inline_kb, language_selection_kb, 
     template_selection_kb, presentation_mode_kb, presentation_img_confirm_kb,

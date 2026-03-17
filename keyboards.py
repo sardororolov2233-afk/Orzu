@@ -10,20 +10,6 @@ main_menu = ReplyKeyboardMarkup(
     resize_keyboard=True
 )
 
-settings_kb = InlineKeyboardMarkup(
-    inline_keyboard=[
-        [InlineKeyboardButton(text="🤖 AI Modelini tanlash", callback_data="settings_ai_model")],
-        [InlineKeyboardButton(text="⬅️ Orqaga", callback_data="back_main")],
-    ]
-)
-
-ai_models_kb = InlineKeyboardMarkup(
-    inline_keyboard=[
-        [InlineKeyboardButton(text="⚡ Groq (Llama 3)", callback_data="set_model_groq")],
-        [InlineKeyboardButton(text="⬅️ Orqaga", callback_data="settings_back")],
-    ]
-)
-
 # Obuna tekshirish klaviaturasi
 subscribe_channel_kb = InlineKeyboardMarkup(
     inline_keyboard=[
@@ -72,32 +58,7 @@ def get_admin_approval_kb(payment_id):
         ]
     )
 
-def get_presentation_edit_kb(sahifa_soni, shablon_id):
-    """
-    Taqdimot ma'lumotlarini tahrirlash uchun dinamik klaviatura
-    """
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(text="📝 Mavzu", callback_data="edit_field_tema"),
-                InlineKeyboardButton(text="👤 Muallif", callback_data="edit_field_muallif"),
-                InlineKeyboardButton(text="🌐 Til", callback_data="edit_field_lang"),
-            ],
-            [
-                InlineKeyboardButton(text="➖", callback_data="page_dec"),
-                InlineKeyboardButton(text=f"{sahifa_soni} sahifa", callback_data="page_noop"),
-                InlineKeyboardButton(text="➕", callback_data="page_inc"),
-            ],
-            [
-                InlineKeyboardButton(text="⬅️", callback_data="design_prev"),
-                InlineKeyboardButton(text=f"Dizayn {shablon_id}", callback_data="design_noop"),
-                InlineKeyboardButton(text="➡️", callback_data="design_next"),
-            ],
-            [
-                InlineKeyboardButton(text="⬅️ Ortga", callback_data="edit_back"),
-            ]
-        ]
-    )
+
 
 def get_page_selection_kb():
     """Taqdimot sahifalarini tanlash (5 dan 30 gacha, 5 qadam bilan)"""

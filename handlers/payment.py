@@ -146,8 +146,7 @@ async def approve_payment(callback: CallbackQuery, bot: Bot):
     user_id = result["user_id"]
     amount = result["amount"]
     
-    # Balansni yangilash — FAQAT admin tasdiqlangandan keyin!
-    await update_user_balance(user_id, amount)
+    # Balansni yangilash database.py ichida approve_pending_payment da qilingan!
     new_balance = await get_user_balance(user_id)
     
     if new_balance is not None:

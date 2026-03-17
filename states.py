@@ -16,21 +16,6 @@ class ReferatState(StatesGroup):
     # Edit mode states
     edit_mode = State()
 
-class PresentationState(StatesGroup):
-    tema = State()
-    muallif = State()
-    sahifa = State()
-    shablon = State()
-    til = State()
-    mode = State()
-    waiting_for_images = State()
-    confirm_images = State()
-    confirmation = State()
-    
-    # Tahrirlash holatlari
-    edit_mode = State()
-    edit_tema = State()
-    edit_muallif = State()
 
 class CourseWorkState(StatesGroup):
     tema = State()

@@ -4,8 +4,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Backend app.db yoʻli (balans sinxronizatsiyasi uchun)
-BACKEND_DB_PATH = Path(os.getenv("BACKEND_DB_PATH", r"d:\Новая папка\backend\app.db"))
 
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 GROQ_API_KEY = os.getenv('GROQ_API_KEY')

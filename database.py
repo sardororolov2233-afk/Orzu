@@ -175,25 +175,51 @@ async def log_user_action(user_id: int, action_type: str, amount: int = 0):
 
 async def get_admin_stats() -> Dict[str, Any]:
     """Get general statistics for admin."""
+    from datetime import datetime
     try:
+        now = datetime.utcnow()
+        first_day_of_month = datetime(now.year, now.month, 1).isoformat()
+
         # Total users
         users_resp = await asyncio.to_thread(supabase.table("users").select("count", count="exact").execute)
         total_users = users_resp.count if users_resp.count is not None else 0
 
-        # Total revenue (completed payments)
-        payments_resp = await asyncio.to_thread(supabase.table("payments").select("amount").eq("status", "completed").execute)
-        total_revenue = sum(p["amount"] for p in payments_resp.data) if payments_resp.data else 0
+        # Monthly users
+        m_users_resp = await asyncio.to_thread(supabase.table("users").select("count", count="exact").gte("created_at", first_day_of_month).execute)
+        monthly_users = m_users_resp.count if m_users_resp.count is not None else 0
 
-        # Actions today
-        # Note: Ideally filter by date, for now simple count
-        stats_resp = await asyncio.to_thread(supabase.table("statistics").select("count", count="exact").execute)
-        total_actions = stats_resp.count if stats_resp.count is not None else 0
+        # Stats for this month
+        stats_data = await asyncio.to_thread(supabase.table("statistics").select("action_type, amount").gte("created_at", first_day_of_month).execute)
+        
+        referat_count = 0
+        course_work_count = 0
+        presentation_count = 0
+        topup_count = 0
+        topup_sum = 0
+        
+        if stats_data.data:
+            for row in stats_data.data:
+                action = row.get("action_type")
+                amount = int(row.get("amount") or 0)
+                if action == "referat":
+                    referat_count += 1
+                elif action == "course_work":
+                    course_work_count += 1
+                elif action == "presentation":
+                    presentation_count += 1
+                elif action == "topup":
+                    topup_count += 1
+                    topup_sum += amount
 
         return {
             "total_users": total_users,
-            "total_revenue": total_revenue,
-            "active_users": total_actions # Placeholder for active users
+            "monthly_users": monthly_users,
+            "referat_count": referat_count,
+            "course_work_count": course_work_count,
+            "presentation_count": presentation_count,
+            "topup_count": topup_count,
+            "topup_sum": topup_sum
         }
     except Exception as e:
         logger.error(f"Error getting admin stats: {e}")
-        return {"total_users": 0, "total_revenue": 0, "active_users": 0}
+        return {}
