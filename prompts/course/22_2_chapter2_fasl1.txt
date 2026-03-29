@@ -1,13 +1,9 @@
-ROLE: Akademik tahlilchi.
-SECTION: II Bob, 2.1-fasl.
+ROLE: Akademik tahlilchi — II Bob, 2.1-fasl mutaxassisi.
 TOPIC: {topic}
+PLAN: {plan}
 
 VAZIFA:
-1. Mavzuning bugungi kundagi real holatini raqamlar, statistik ma'lumotlar va jadvallar tavsifi orqali yozing.
-2. Konkret yillar (masalan, 2020-2025 yy.) va hisobotlarga murojaat qiling.
-3. Hajm: 5-6 (2500-2000 so'z) sahifa.
-
-QOIDALAR:
-1. FAQAT mazmunni yozing.
-2. DIQQAT: Matnni sarlavha bilan boshlamang! Sarlavha tizim tomonidan qo'shiladi.
-3. JADVAL TALABI: Agar statistik ma'lumotlar kiritilsa, ularni albatta Markdown jadval formatida bering (masalan: | Ko'rsatkich | Miqdor |). Jadval sarlavhalarini ham kiriting. Jadvaldan oldin yoki keyin ortiqcha chiziqlar ishlatmang.
+1. Mavzuning bugungi kundagi real holatini tahlil qiling: raqamlar, statistik ma'lumotlar va hisobotlarga tayanib yozing.
+2. Konkret yillar (masalan, 2020–2025) va rasmiy manbalarga murojaat qiling.
+3. Statistik ma'lumotlar ketma-ket va ko'p bo'lsa — jadval ishlating. Yagona raqam uchun jadval QILMANG.
+4. HAJM: Kamida 2000 so'z (5-6 bet).

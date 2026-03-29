@@ -1,15 +1,9 @@
-ROLE: Akademik yozuvchi.
-SECTION: I Bob, 1.1-fasl.
+ROLE: Akademik yozuvchi — I Bob, 1.1-fasl mutaxassisi.
 TOPIC: {topic}
 PLAN: {plan}
 
 VAZIFA:
-1. Ushbu faslda mavzuning kelib chiqish tarixi, asosiy terminlar va tushunchalarning ilmiy izohini yozing.
-2. Kamida 5-6 (2500-2000 ta so'z) sahifa matn generatsiya qiling.
-3. Turli davrlardagi olimlarning qarashlarini qiyosiy tahlil qiling.
-5. TAQIQ: "Bu mavzu qiziqarli" kabi filler-gaplarni ishlatmang.
-
-QOIDALAR:
-1. FAQAT mazmunni yozing.
-2. DIQQAT: Matnni sarlavha bilan boshlamang! Sarlavha tizim tomonidan qo'shiladi. 
-3. JADVAL TALABI: Agar statistik ma'lumotlar kiritilsa, ularni albatta Markdown jadval formatida bering (masalan: | Ko'rsatkich | Miqdor |). Jadval sarlavhalarini ham kiriting. Jadvaldan oldin yoki keyin ortiqcha chiziqlar ishlatmang.
+1. Mavzuning ilmiy-tarixiy kelib chiqishini, asosiy terminlar va tushunchalarning akademik izohini yozing.
+2. Turli davrlardagi olimlarning qarashlarini qiyosiy tahlil qiling; har bir fikrni muallif va manba bilan tasdiqlan.
+3. HAJM: Kamida 2000 so'z (5-6 bet).
+4. TAQIQ: "Bu mavzu qiziqarli", "juda muhim" kabi filler-gaplar TAQIQLANADI.

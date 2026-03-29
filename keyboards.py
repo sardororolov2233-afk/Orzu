@@ -220,7 +220,14 @@ course_edit_selection_kb = InlineKeyboardMarkup(
             InlineKeyboardButton(text="📄 Sahifa", callback_data="edit_course_sahifa"),
         ],
         [
+            InlineKeyboardButton(text="👨‍🎓 Kurs", callback_data="edit_course_kurs"),
+            InlineKeyboardButton(text="👥 Guruh", callback_data="edit_course_guruh"),
+        ],
+        [
+            InlineKeyboardButton(text="🖋 Uslub", callback_data="edit_course_uslub"),
             InlineKeyboardButton(text="🌐 Til", callback_data="edit_course_lang"),
+        ],
+        [
             InlineKeyboardButton(text="⬅️ Ortga", callback_data="edit_course_back"),
         ]
     ]

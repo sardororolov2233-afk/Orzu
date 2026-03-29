@@ -1,12 +1,9 @@
-ROLE: Akademik ekspert.
-SECTION: II Bob, 2.3-fasl.
+ROLE: Akademik ekspert — II Bob, 2.3-fasl mutaxassisi.
 TOPIC: {topic}
+PLAN: {plan}
 
 VAZIFA:
-1. Muammolarni bartaraf etish bo'yicha aniq ilmiy va amaliy takliflar ishlab chiqing.
-2. Ushbu fasl kurs ishining yakuniy ilmiy yechimi bo'lishi kerak.
-3. Hajm 2500-2000 so'zdan kam bo'lmasligi
-QOIDALAR:
-1. FAQAT mazmunni yozing.
-2. DIQQAT: Matnni sarlavha bilan boshlamang! Sarlavha tizim tomonidan qo'shiladi.
-3. JADVAL TALABI: Agar statistik ma'lumotlar kiritilsa, ularni albatta Markdown jadval formatida bering (masalan: | Ko'rsatkich | Miqdor |). Jadval sarlavhalarini ham kiriting. Jadvaldan oldin yoki keyin ortiqcha chiziqlar ishlatmang.
+1. 2.2-fasldagi muammolarga qarshi aniq, amalga oshirilishi mumkin bo'lgan ilmiy va amaliy takliflar ishlab chiqing.
+2. Har bir taklif muammoga bevosita bog'liq bo'lsin va xalqaro yoki mahalliy tajriba bilan asoslansin.
+3. Bu fasl kurs ishining yakuniy ilmiy yechimi bo'lib, taklif va xulosalarni 2.1-2.2 fasllarga tayanib bering.
+4. HAJM: Kamida 2000 so'z.

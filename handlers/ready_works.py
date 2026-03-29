@@ -3,6 +3,7 @@ from aiogram.types import Message, FSInputFile
 from aiogram.fsm.context import FSMContext
 import os
 import logging
+import asyncio
 
 router = Router()
 logger = logging.getLogger(__name__)
@@ -41,4 +42,3 @@ async def send_ready_works(message: Message, bot: Bot):
     
     await message.answer("✅ Barcha tayyor ishlar yuborildi.")
 
-import asyncio

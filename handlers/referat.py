@@ -94,7 +94,7 @@ async def process_ish_turi(callback: CallbackQuery, state: FSMContext):
     await state.update_data(ish_turi=ish_turi)
     
     # Auto-fill check
-    user_data = get_user_referat_data(callback.from_user.id)
+    user_data = await get_user_referat_data(callback.from_user.id)
     if user_data:
         # Fill data from DB
         await state.update_data(**user_data)
@@ -214,7 +214,7 @@ async def referat_tariff_back(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(ReferatState.tariff_selection, F.data.in_({"ref_tariff_oddiy", "ref_tariff_pro"}))
 async def start_plan_generation(callback: CallbackQuery, state: FSMContext, bot: Bot):
-    user_id = callback.fromuser.id if hasattr(callback, 'fromuser') else callback.from_user.id
+    user_id = callback.from_user.id
     
     price = 8000 if callback.data == "ref_tariff_oddiy" else 14900
     await state.update_data(tariff_price=price)
@@ -507,7 +507,7 @@ async def generate_full_content(callback: CallbackQuery, state: FSMContext):
 @router.callback_query(F.data.in_({"plan_approve", "plan_regenerate", "plan_cancel", "referat_confirm", "referat_edit", "referat_cancel", "ref_tariff_oddiy", "ref_tariff_pro", "tariff_referat_back"}))
 async def handle_expired_session(callback: CallbackQuery, state: FSMContext):
     # Try to recover from DB
-    user_data = get_user_referat_data(callback.from_user.id)
+    user_data = await get_user_referat_data(callback.from_user.id)
     
     if user_data and user_data.get('last_topic'):
         # Restore profile data

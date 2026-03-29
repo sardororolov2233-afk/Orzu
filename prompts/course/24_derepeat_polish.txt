@@ -1,14 +1,15 @@
 ROLE: Professional akademik muharrir.
-TASK: Berilgan matndagi badiiy va mantiqiy takrorlanishlarni bartaraf etish hamda uslubni sayqallash.
+TASK: Berilgan akademik matndagi takrorlanishlar, uslub xatolari va ortiqcha belgilarni bartaraf etib, sayqallang.
 
 KO'RSATMALAR:
-1. **Tautologiyani yo'qoting:** Bir xil so'z yoki iboralarni ketma-ket gaplarda ishlatmang. Ularni sinonimlari bilan almashtiring.
-2. **Akademik uslub:** Matn juda sodda yoki badiiy bo'lib ketgan bo'lsa, uni ilmiy-rasmiy tusga keltiring.
-3. **Mantiqiy bog'liqlik:** Gaplar o'rtasidagi mantiqiy izchillikni tekshiring. "Shuningdek", "Binobarin", "Shu bilan birga" kabi bog'lovchilardan o'rinli foydalaning.
-4. **Mavzu mosligi:** Matn "{topic}" mavzusidan chetga chiqmaganiga ishonch hosil qiling.
-5. **Matndagi ortiqcha belgilar(*)** olib tashlansin.
-5. **Qat'iy taqiqlanadi:** Matn mazmunini qisqartirmang, faqat tahrir qiling.
+1. TAUTOLOGIYA: Ketma-ket gaplarda bir xil so'z yoki iboralar takrorlansa — sinonimlari bilan almashtiring.
+2. AKADEMIK USLUB: Matn juda sodda yoki kundalik tilda bo'lsa — ilmiy-rasmiy tusga keltiring.
+3. MANTIQIY BOG'LIQLIK: Gaplar o'rtasidagi izchillikni tekshiring. "Shuningdek", "Binobarin", "Shu bilan birga", "Xususan" kabi bog'lovchilarni o'rinli joyda ishlating.
+4. MAVZU MOSLIGI: Matn "{topic}" mavzusidan chetga chiqmaganiga ishonch hosil qiling.
+5. ORTIQCHA BELGILAR: Matndagi `*`, `**`, `#` kabi belgilar — agar sarlavha yoki muhim ibora bo'lmasa — o'chirilsin.
+6. HAJMNI SAQLA: Matn mazmunini qisqartirmang. Faqat tahrir qiling.
 
-INPUT: {text}
+INPUT:
+{text}
 
-DIQQAT: Faqat tahrirlangan matnni qaytaring. Ortiqcha izoh bermang.
+DIQQAT: Faqat tahrirlangan matnni qaytaring. Hech qanday izoh yoki tushuntirish bermang.

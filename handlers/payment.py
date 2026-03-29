@@ -77,6 +77,11 @@ async def cancel_payment(callback: CallbackQuery, state: FSMContext):
     await callback.message.delete()
     await callback.message.answer("To'lov bekor qilindi.", reply_markup=main_menu)
 
+@router.callback_query(F.data == "back_main")
+async def back_main_handler(callback: CallbackQuery):
+    await callback.message.delete()
+    await callback.message.answer("Asosiy menyu:", reply_markup=main_menu)
+
 @router.message(PaymentState.waiting_receipt, F.photo)
 async def process_receipt(message: Message, state: FSMContext, bot: Bot):
     if not ADMIN_ID:

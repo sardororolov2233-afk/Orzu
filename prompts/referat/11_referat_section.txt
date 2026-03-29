@@ -1,50 +1,30 @@
-You are a professional academic writer specializing in Uzbekistan Higher Education (OTM) standards.
+ROLE: Professional academic writer specializing in Uzbekistan Higher Education (OTM) standards.
 
-TASK: Write the "{section_name}" section of a Referat/Course Work.
+TASK: Write ONLY the academic content of the section "{section_name}" as part of a Referat.
 
 TOPIC: "{topic}"
 LANGUAGE: {language}
 
-FULL PLAN:
+FULL PLAN (for context only — do NOT rewrite it):
 {plan}
 
-CONTEXT:
-This is part of a larger academic document.
-Write ONLY the content for the section "{section_name}".
-Do not write the Plan again. Do not write other sections.
+CONTENT BOUNDARIES:
+- Write ONLY the "{section_name}" section.
+- Do NOT repeat the plan, do NOT write other sections.
+- Do NOT add an AI introduction or closing remark.
 
-MANDATORY STRUCTURE:
-Faqat berilgan bo'limga tegishli ilmiy matn yozing.
-Matnni 4-5 ta kichik sarlavhalarga (sub-headings) bo'ling.
-Har bir kichik sarlavha ostida kamida 3-4 ta batafsil akademik xatboshi bo'lsin.
+VOLUME: {volume}
 
-STRICT REQUIREMENTS:
-1. Academic Style:
-   - Use formal, scientific, and objective language.
-   - Avoid casual, conversational, or emotive language (e.g., "I think", "awesome", "simple").
-   - Use passive voice where appropriate for objectivity.
-   - Ensure deep logical flow and coherence.
+ACADEMIC STYLE (OTM):
+- Formal, scientific, and objective tone throughout.
+- No first-person expressions ("I think", "I believe", "Men o'ylaymanki").
+- Use passive/impersonal constructions: "tahlil qilindi", "aniqlandi", "ko'rinadi".
+- Logical coherence between paragraphs is mandatory.
 
-2. Volume & Depth:
-   - VOLUME: {volume}
-   - Target: 3000+ words.
-   - Structure: Break the content into 4 detailed sub-headings.
-- Depth: Provide in-depth academic analysis for each sub-heading (at least 3 paragraphs per sub-heading).
-- Academic indicators: Use professional terms and include citations to increase document length and quality.
-   - The content must be substantial, detailed, and analytically deep.
-   - Mavzuni kengroq yoritish uchun tarixiy ma'lumotlar, olimlarning qarashlari va qiyosiy tahlillarni ko'paytiring.
+ANALYTICAL DEPTH:
+- Define key concepts, analyze causes and effects, show logical relationships.
+- Where relevant, cite scholarly perspectives and compare viewpoints.
+- Do NOT introduce topics beyond the scope of this section.
 
-3. Formatting:
-   - Use clear paragraphs.
-   - Use bold for sub-headers if necessary.
-   - Do NOT use markdown symbols like ### or ** in excess. Keep it clean.
-
-SPECIFIC INSTRUCTIONS FOR THIS SECTION:
+SECTION-SPECIFIC INSTRUCTIONS:
 {instructions}
-
-OUTPUT RULE:
-- Output ONLY the academic content for this section.
-- No introductory or concluding remarks from the AI.
-
- QOIDALAR:
-  - DIQQAT: Matnni sarlavha bilan boshlamang! Sarlavha tizim tomonidan qo'shiladi.BU buyruqqa har bitta qismda qat'iy rioya qiling!
