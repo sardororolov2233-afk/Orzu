@@ -105,6 +105,22 @@ async def generate_full_course_work(topic: str, plan: str, lang: str, status_mes
                 return line
         return prefix
 
+    if lang == "Русский":
+        chap_prefixes = {1: "ГЛАВА I", 2: "ГЛАВА II"}
+        intro_hdr = "ВВЕДЕНИЕ"
+        conc_hdr = "ЗАКЛЮЧЕНИЕ"
+        refs_hdr = "СПИСОК ИСПОЛЬЗОВАННОЙ ЛИТЕРАТУРЫ"
+    elif lang == "Ingliz" or lang == "English":
+        chap_prefixes = {1: "CHAPTER I", 2: "CHAPTER II"}
+        intro_hdr = "INTRODUCTION"
+        conc_hdr = "CONCLUSION"
+        refs_hdr = "REFERENCES"
+    else:
+        chap_prefixes = {1: "I BOB", 2: "II BOB"}
+        intro_hdr = "KIRISH"
+        conc_hdr = "XULOSA"
+        refs_hdr = "FOYDALANILGAN ADABIYOTLAR RO'YXATI"
+
     async def update_status(text):
         if status_message:
             try:
@@ -116,20 +132,25 @@ async def generate_full_course_work(topic: str, plan: str, lang: str, status_mes
     await update_status("Kirish qismi yozilmoqda...")
     
     # Yangi yaxlit promptni yuklaymiz
-    p_intro = load_prompt("course/21_0_full_intro.txt", topic=topic, plan=plan)
+    p_intro = load_prompt("course/21_0_full_intro.txt", topic=topic, plan=plan, language=lang)
     intro_content = await ask_ai(p_intro, model=MODEL_SMART)
     
     if intro_content:
-        full_text.append(f"KIRISH\n\n{intro_content}")
+        full_text.append(f"{intro_hdr}\n\n{intro_content}")
     else:
-        full_text.append("KIRISH\n\n(Kirish qismini yaratishda xatolik yuz berdi)")
+        full_text.append(f"{intro_hdr}\n\n(Xatolik yuz berdi)")
 
     # 2. BOBLARNI GENERATSIYA QILISH (Xulosalarsiz)
     for i in range(1, 3): # I va II Boblar
         # Statik nomni olib tashlab, rejadagi aniq nomni olamiz
-        bob_full_title = get_section_title(f"{i} BOB")
-        if bob_full_title == f"{i} BOB": # Agar topilmasa, rim raqamini tekshiramiz
-             bob_full_title = get_section_title("I BOB" if i==1 else "II BOB")
+        bob_roman = chap_prefixes[i]
+        bob_alt = bob_roman.replace("I", "1").replace("II", "2")
+        
+        bob_full_title = get_section_title(bob_roman)
+        if bob_full_title == bob_roman: # Agar topilmasa, muqobil raqamliniki tekshiramiz
+             bob_full_title = get_section_title(bob_alt)
+             if bob_full_title == bob_alt:
+                 bob_full_title = bob_roman # Topilmasa umumiy sarlavha qoladi
         
         full_text.append(f"\n\n{bob_full_title}")
         
@@ -141,7 +162,7 @@ async def generate_full_course_work(topic: str, plan: str, lang: str, status_mes
                 await status_message.edit_text(f"⏳ {section_title} kengaytirib yozilmoqda...")
             
             # AIga yuboriladigan kengaytirilgan promt
-            p_fasl = load_prompt(f"course/22_{i}_chapter{i}_fasl{j}.txt", topic=topic, plan=plan)
+            p_fasl = load_prompt(f"course/22_{i}_chapter{i}_fasl{j}.txt", topic=topic, plan=plan, language=lang)
             
             # AIga qat'iy yo'riqnoma qo'shish
             p_fasl += f""" 
@@ -159,6 +180,7 @@ async def generate_full_course_work(topic: str, plan: str, lang: str, status_mes
             TALAB (MANDATORY):
             ✅ Matn "{plan}" rejasiga 100% mos bo'lishi shart.
             ✅ Har bir fikr ilmiy asoslangan bo'lishi kerak.
+            ✅ Asosiy matn majburiy ravishda quyidagi tilda yozilishi shart: {lang}
             """
             
             # MUVOFIQLIK VA HAJM UCHUN QAT'IY BUYRUQ:
@@ -184,12 +206,13 @@ async def generate_full_course_work(topic: str, plan: str, lang: str, status_mes
             await status_message.edit_text("⏳ Yakuniy xulosa tayyorlanmoqda...")
         except:
             pass
-    conclusion = await ask_ai(load_prompt("course/23_1_general_conclusion.txt", topic=topic, plan=plan), model=MODEL_SMART)
-    full_text.append(f"\n\nXULOSA\n\n{conclusion}")
+    conclusion = await ask_ai(load_prompt("course/23_1_general_conclusion.txt", topic=topic, plan=plan, language=lang), model=MODEL_SMART)
+    full_text.append(f"\n\n{conc_hdr}\n\n{conclusion}")
     
     # 5. ADABIYOTLAR RO'YXATI
-    refs = await ask_ai(f"{topic} mavzusidagi kurs ishi uchun 15 ta ilmiy adabiyot ro'yxatini OTM standartida bering.", model=MODEL_SMART)
-    full_text.append(f"\n\nFOYDALANILGAN ADABIYOTLAR RO'YXATI\n\n{refs}")
+    ref_prompt = f"Provide a list of 15 academic references for the course work topic: '{topic}' formatted in standard APA or local academic style. The references must be aligned with the {lang} language context."
+    refs = await ask_ai(ref_prompt, model=MODEL_SMART)
+    full_text.append(f"\n\n{refs_hdr}\n\n{refs}")
 
     full_raw_text = "\n\n".join(full_text)
 

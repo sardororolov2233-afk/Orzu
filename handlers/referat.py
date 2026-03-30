@@ -392,7 +392,21 @@ async def generate_full_content(callback: CallbackQuery, state: FSMContext):
     # Sarlavhani faqat AI matni bilan birga, bir marta qo'shing.
     # ---------------------------------------------------------
     
-    chapters = ["I BOB", "II BOB", "III BOB"]
+    if lang in ["Русский", "Rus"]:
+        chapters = ["ГЛАВА I", "ГЛАВА II", "ГЛАВА III"]
+        intro_hdr = "ВВЕДЕНИЕ"
+        conc_hdr = "ЗАКЛЮЧЕНИЕ"
+        refs_hdr = "СПИСОК ИСПОЛЬЗОВАННОЙ ЛИТЕРАТУРЫ"
+    elif lang in ["English", "Ingliz"]:
+        chapters = ["CHAPTER I", "CHAPTER II", "CHAPTER III"]
+        intro_hdr = "INTRODUCTION"
+        conc_hdr = "CONCLUSION"
+        refs_hdr = "REFERENCES"
+    else:
+        chapters = ["I BOB", "II BOB", "III BOB"]
+        intro_hdr = "KIRISH"
+        conc_hdr = "XULOSA"
+        refs_hdr = "FOYDALANILGAN ADABIYOTLAR RO'YXATI"
     
     for i, chapter_title in enumerate(chapters, 1):
         # Bob sarlavhasini qo'shamiz
@@ -400,10 +414,15 @@ async def generate_full_content(callback: CallbackQuery, state: FSMContext):
         
         # Har bir bob ichidagi 3 ta faslni alohida so'ratamiz
         for sub in range(1, 2):
-            sub_title = f"{i}.{sub}-fasl"
+            sub_title = f"{i}.{sub}"
+            if lang in ["Русский", "Rus"]: sub_title += "-раздел"
+            elif lang in ["English", "Ingliz"]: sub_title += " section"
+            else: sub_title += "-fasl"
+            
             instruction = (
                 f"Mavzuni tahliliy yozing. Kamida 500-600 so'z bo'lsin.\n"
-                f"Faqat {chapter_title}, {sub_title} haqida yozing."
+                f"Faqat {chapter_title}, {sub_title} haqida yozing.\n"
+                f"Majburiy matn tili: {lang}"
             )
             
             # Har bir fasl uchun alohida AI so'rovi
@@ -420,25 +439,25 @@ async def generate_full_content(callback: CallbackQuery, state: FSMContext):
     # ---------------------------------------------------------
     
     # KIRISH
-    intro = await generate_section("KIRISH", 
-        "Write a strong, comprehensive introduction. Relevance, goals, tasks. No conclusion. No subsections. Content-rich without literary digressions.")
-    full_text.insert(0, format_section_safe("KIRISH", intro))
+    intro = await generate_section(intro_hdr, 
+        f"Write a strong, comprehensive introduction. Relevance, goals, tasks. No conclusion. No subsections. MUST BE WRITTEN IN {lang.upper()} LANGUAGE.")
+    full_text.insert(0, format_section_safe(intro_hdr, intro))
     
     await smart_delay()
     
     # XULOSA
     # Sarlavhani faqat AI matni bilan birga, bir marta qo'shing
-    conc = await generate_section("XULOSA", 
-        "Write a comprehensive conclusion. Summarizing findings and suggestions. Do not repeat Intro. No subsections. Content-rich without literary digressions.")
-    full_text.append(format_section_safe("XULOSA", conc))
+    conc = await generate_section(conc_hdr, 
+        f"Write a comprehensive conclusion. Summarizing findings and suggestions. Do not repeat Intro. No subsections. MUST BE WRITTEN IN {lang.upper()} LANGUAGE.")
+    full_text.append(format_section_safe(conc_hdr, conc))
     
     await smart_delay()
     
     # ADABIYOTLAR
     # Sarlavhani faqat AI matni bilan birga, bir marta qo'shing
-    refs = await generate_section("FOYDALANILGAN ADABIYOTLAR", 
-        "List 10-15 real sources in alphabetical order. No subsections. Content-rich without literary digressions.")
-    full_text.append(format_section_safe("FOYDALANILGAN ADABIYOTLAR RO‘YXATI", refs))
+    refs = await generate_section(refs_hdr, 
+        f"List 10-15 real sources in alphabetical order. Proper formatting for {lang.upper()} academic style. No subsections. Written in {lang.upper()} strictly.")
+    full_text.append(format_section_safe(refs_hdr, refs))
     
     await smart_delay()
 
