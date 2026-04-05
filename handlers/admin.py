@@ -157,9 +157,10 @@ async def broadcast_got_photo(message: Message, state: FSMContext):
     )
     await state.set_state(BroadcastState.confirm)
 
+    caption_text = caption if caption else "(yo'q)"
     confirm_text = (
         f"🖼 <b>Rasm bilan xabar:</b>\n"
-        f"Sarlavha: {caption or '(yo\'q)'}\n\n"
+        f"Sarlavha: {caption_text}\n\n"
         f"━━━━━━━━━━━━━━━━━━\n"
         f"✅ Yuborishni tasdiqlaysizmi?"
     )
@@ -185,9 +186,10 @@ async def broadcast_got_video(message: Message, state: FSMContext):
     )
     await state.set_state(BroadcastState.confirm)
 
+    caption_text = caption if caption else "(yo'q)"
     confirm_text = (
         f"🎬 <b>Video bilan xabar:</b>\n"
-        f"Sarlavha: {caption or '(yo\'q)'}\n\n"
+        f"Sarlavha: {caption_text}\n\n"
         f"━━━━━━━━━━━━━━━━━━\n"
         f"✅ Yuborishni tasdiqlaysizmi?"
     )
