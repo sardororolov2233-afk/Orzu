@@ -142,7 +142,7 @@ async def reject_pending_payment(payment_id: str) -> Optional[Dict[str, Any]]:
 async def get_pending_payments_count() -> int:
     """Get the number of pending payments."""
     try:
-        response = await asyncio.to_thread(supabase.table("payments").select("count", count="exact").eq("status", "pending").execute)
+        response = await asyncio.to_thread(supabase.table("payments").select("*", count="exact").eq("status", "pending").execute)
         return response.count if response.count is not None else 0
     except Exception as e:
         logger.error(f"Error getting pending payments count: {e}")
@@ -181,11 +181,11 @@ async def get_admin_stats() -> Dict[str, Any]:
         first_day_of_month = datetime(now.year, now.month, 1).isoformat()
 
         # Total users
-        users_resp = await asyncio.to_thread(supabase.table("users").select("count", count="exact").execute)
+        users_resp = await asyncio.to_thread(supabase.table("users").select("*", count="exact").execute)
         total_users = users_resp.count if users_resp.count is not None else 0
 
         # Monthly users
-        m_users_resp = await asyncio.to_thread(supabase.table("users").select("count", count="exact").gte("created_at", first_day_of_month).execute)
+        m_users_resp = await asyncio.to_thread(supabase.table("users").select("*", count="exact").gte("created_at", first_day_of_month).execute)
         monthly_users = m_users_resp.count if m_users_resp.count is not None else 0
 
         # Stats for this month
