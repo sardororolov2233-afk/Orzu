@@ -263,10 +263,12 @@ course_plan_approval_kb = InlineKeyboardMarkup(
 )
 
 __all__ = [
-    "main_menu", "payment_keyboard", "presentation_mode_kb", 
-    "presentation_confirm_inline_kb", "template_selection_kb", 
+    "main_menu", "payment_keyboard", "send_receipt_kb", "get_admin_approval_kb",
+    "presentation_mode_kb", "presentation_confirm_inline_kb",
+    "presentation_img_confirm_kb", "template_selection_kb", 
     "language_selection_kb", "referat_confirm_inline_kb", "referat_edit_selection_kb",
     "course_confirm_inline_kb", "course_edit_selection_kb",
     "referat_type_kb", "referat_plan_approval_kb", "course_plan_approval_kb",
-    "subscribe_channel_kb", "referat_tariff_kb", "course_tariff_kb"
+    "subscribe_channel_kb", "referat_tariff_kb", "course_tariff_kb",
+    "get_page_selection_kb"
 ]

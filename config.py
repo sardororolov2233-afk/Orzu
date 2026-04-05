@@ -20,5 +20,11 @@ if not BOT_TOKEN:
 ADMIN_ID = os.getenv('ADMIN_ID')
 if not ADMIN_ID:
     print("⚠️ DIQQAT: ADMIN_ID topilmadi! To'lovlarni tasdiqlash ishlamaydi.")
+else:
+    try:
+        ADMIN_ID = int(ADMIN_ID)
+    except ValueError:
+        print("⚠️ DIQQAT: ADMIN_ID raqam emas! To'lovlarni tasdiqlash ishlamaydi.")
+        ADMIN_ID = None
 
 print('Token va API Keylar yuklandi')

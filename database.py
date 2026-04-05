@@ -62,10 +62,17 @@ get_user_referat_data = get_user
 
 async def get_user_balance(user_id: int) -> float:
     """Get user balance."""
-    user = await get_user(user_id)
-    if user:
-        return float(user.get("balance", 0.0))
-    return 0.0
+    try:
+        user = await get_user(user_id)
+        if user:
+            balance = user.get("balance")
+            if balance is None:
+                return 0.0
+            return float(balance)
+        return 0.0
+    except Exception as e:
+        logger.error(f"Error getting balance for {user_id}: {e}")
+        return 0.0
 
 async def update_user_balance(user_id: int, amount: float) -> bool:
     """Update user balance (increment/decrement)."""

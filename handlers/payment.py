@@ -21,22 +21,27 @@ class PaymentState(StatesGroup):
 @router.message(F.text == "💳 Balans")
 async def balance_handler(message: Message):
     balance = await get_user_balance(message.from_user.id)
+    balance_int = int(balance)
     
     await message.answer(
-        f"💳 Sizning hisobingizda: {balance} so'm\n\n"
+        f"💳 Sizning hisobingizda: <b>{balance_int:,} so'm</b>\n\n"
         "Hisobni to'ldirish uchun summani tanlang:",
+        parse_mode="HTML",
         reply_markup=payment_keyboard
     )
 
 @router.callback_query(F.data == "payment")
 async def payment_start_callback(callback: CallbackQuery):
     balance = await get_user_balance(callback.from_user.id)
+    balance_int = int(balance)
     
     await callback.message.edit_text(
-        f"💳 Sizning hisobingizda: {balance} so'm\n\n"
+        f"💳 Sizning hisobingizda: <b>{balance_int:,} so'm</b>\n\n"
         "Hisobni to'ldirish uchun summani tanlang:",
+        parse_mode="HTML",
         reply_markup=payment_keyboard
     )
+    await callback.answer()
 
 @router.callback_query(F.data.startswith("pay_"))
 async def payment_amount_selected(callback: CallbackQuery, state: FSMContext):
@@ -91,8 +96,14 @@ async def process_receipt(message: Message, state: FSMContext, bot: Bot):
 
     data = await state.get_data()
     amount = data.get("payment_amount")
+    if not amount:
+        await message.answer("❌ Summa topilmadi. Iltimos qaytadan boshlang.")
+        await state.clear()
+        return
+
     user = message.from_user
     receipt_file_id = message.photo[-1].file_id
+    username_str = f"@{user.username}" if user.username else "yo'q"
     
     # Bazaga pending payment sifatida saqlash
     payment_id = await create_pending_payment(
@@ -110,36 +121,43 @@ async def process_receipt(message: Message, state: FSMContext, bot: Bot):
     
     # Admin ga yuborish
     caption = (
-        f"📩 Yangi to'lov cheki! (#{payment_id})\n\n"
-        f"👤 Foydalanuvchi: {user.full_name} (@{user.username})\n"
+        f"📩 Yangi to'lov cheki!\n\n"
+        f"👤 Foydalanuvchi: {user.full_name} ({username_str})\n"
         f"🆔 ID: {user.id}\n"
-        f"💰 Summa: {amount} so'm"
+        f"💰 Summa: {amount:,} so'm\n"
+        f"🔑 Payment ID: {payment_id}"
     )
     
     try:
         await bot.send_photo(
-            chat_id=ADMIN_ID,
+            chat_id=int(ADMIN_ID),
             photo=receipt_file_id,
             caption=caption,
             reply_markup=get_admin_approval_kb(payment_id)
         )
         await message.answer(
-            "✅ Chek yuborildi!\n\n"
+            "✅ Chek muvaffaqiyatli yuborildi!\n\n"
             "⏳ Admin tasdiqlaganidan so'ng hisobingiz to'ldiriladi.\n"
             "Iltimos, kuting...",
             reply_markup=main_menu
         )
     except Exception as e:
         logger.error(f"Admin ga yuborishda xatolik: {e}")
-        await message.answer("❌ Xatolik yuz berdi. Iltimos qayta urinib ko'ring.")
+        await message.answer(
+            "❌ Chekni admin ga yuborishda xatolik yuz berdi.\n"
+            "Iltimos @sardorbekuralov bilan bog'laning."
+        )
     
     await state.clear()
 
 @router.callback_query(F.data.startswith("approve_"))
 async def approve_payment(callback: CallbackQuery, bot: Bot):
-    # Format: approve_PAYMENTID
-    parts = callback.data.split("_")
-    payment_id = int(parts[1])
+    # Format: approve_123  (payments.id = int8)
+    try:
+        payment_id = int(callback.data[len("approve_"):])
+    except ValueError:
+        await callback.answer("❌ Noto'g'ri to'lov ID!", show_alert=True)
+        return
     
     # Bazadan to'lov ma'lumotlarini olish va statusni yangilash
     result = await approve_pending_payment(payment_id)
@@ -153,29 +171,35 @@ async def approve_payment(callback: CallbackQuery, bot: Bot):
     
     # Balansni yangilash database.py ichida approve_pending_payment da qilingan!
     new_balance = await get_user_balance(user_id)
+    new_balance_int = int(new_balance)
     
-    if new_balance is not None:
-        await log_user_action(user_id, 'topup', amount=amount)
+    await log_user_action(user_id, 'topup', amount=amount)
+    try:
         await callback.message.edit_caption(
-            caption=f"{callback.message.caption}\n\n✅ TASDIQLANDI ✅\n💰 Yangi balans: {new_balance} so'm"
+            caption=f"{callback.message.caption}\n\n✅ TASDIQLANDI ✅\n💰 Yangi balans: {new_balance_int:,} so'm"
         )
-        try:
-            await bot.send_message(
-                user_id,
-                f"✅ To'lov tasdiqlandi!\n\n"
-                f"💰 Hisobingizga {amount} so'm qo'shildi.\n"
-                f"💳 Joriy balans: {new_balance} so'm"
-            )
-        except:
-            pass
-    else:
-        await callback.answer("Bazaga yozishda xatolik!", show_alert=True)
+    except Exception:
+        pass
+    try:
+        await bot.send_message(
+            user_id,
+            f"✅ To'lovingiz tasdiqlandi!\n\n"
+            f"💰 Hisobingizga <b>{amount:,} so'm</b> qo'shildi.\n"
+            f"💳 Joriy balans: <b>{new_balance_int:,} so'm</b>",
+            parse_mode="HTML"
+        )
+    except Exception as e:
+        logger.warning(f"Foydalanuvchiga xabar yuborib bo'lmadi {user_id}: {e}")
+    await callback.answer("✅ To'lov tasdiqlandi!", show_alert=True)
 
 @router.callback_query(F.data.startswith("reject_"))
 async def reject_payment(callback: CallbackQuery, bot: Bot):
-    # Format: reject_PAYMENTID
-    parts = callback.data.split("_")
-    payment_id = int(parts[1])
+    # Format: reject_123  (payments.id = int8)
+    try:
+        payment_id = int(callback.data[len("reject_"):])
+    except ValueError:
+        await callback.answer("❌ Noto'g'ri to'lov ID!", show_alert=True)
+        return
     
     result = await reject_pending_payment(payment_id)
     
