@@ -34,3 +34,8 @@ class CourseWorkState(StatesGroup):
     edit_mode = State()
 
 
+class BroadcastState(StatesGroup):
+    waiting_for_message = State()
+    confirm = State()
+
+

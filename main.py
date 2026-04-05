@@ -9,6 +9,7 @@ from aiohttp import web
 sys.path.insert(0, str(Path(__file__).parent))
 
 from aiogram import Bot, Dispatcher, F
+from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import Message
 from aiogram.filters import CommandStart, Command
 from aiogram.types import CallbackQuery
@@ -108,7 +109,7 @@ async def main():
         # Bot va Dispatcher yaratish
         logger.info("🤖 Creating bot and dispatcher instances...")
         bot = Bot(token=BOT_TOKEN)
-        dp = Dispatcher()
+        dp = Dispatcher(storage=MemoryStorage())
 
         # Handlerlarni ro'yxatdan o'tkazish
         logger.info("📝 Registering handlers...")

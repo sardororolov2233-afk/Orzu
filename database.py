@@ -223,3 +223,14 @@ async def get_admin_stats() -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Error getting admin stats: {e}")
         return {}
+
+async def get_all_user_ids() -> List[int]:
+    """Get all user telegram_ids for broadcast."""
+    try:
+        response = await asyncio.to_thread(supabase.table("users").select("telegram_id").execute)
+        if response.data:
+            return [row["telegram_id"] for row in response.data]
+        return []
+    except Exception as e:
+        logger.error(f"Error getting all user ids: {e}")
+        return []
