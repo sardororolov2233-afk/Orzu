@@ -22,18 +22,19 @@ subscribe_channel_kb = InlineKeyboardMarkup(
 payment_keyboard = InlineKeyboardMarkup(
     inline_keyboard=[
         [
+            InlineKeyboardButton(text="5 000 so'm", callback_data="pay_5000"),
             InlineKeyboardButton(text="10 000 so'm", callback_data="pay_10000"),
+        ],
+        [
             InlineKeyboardButton(text="15 000 so'm", callback_data="pay_15000"),
-        ],
-        [
             InlineKeyboardButton(text="20 000 so'm", callback_data="pay_20000"),
+        ],
+        [
             InlineKeyboardButton(text="25 000 so'm", callback_data="pay_25000"),
-        ],
-        [
             InlineKeyboardButton(text="30 000 so'm", callback_data="pay_30000"),
-            InlineKeyboardButton(text="50 000 so'm", callback_data="pay_50000"),
         ],
         [
+            InlineKeyboardButton(text="50 000 so'm", callback_data="pay_50000"),
             InlineKeyboardButton(text="⬅️ Orqaga", callback_data="back_main"),
         ],
     ]
@@ -189,13 +190,17 @@ referat_edit_selection_kb = InlineKeyboardMarkup(
 )
 
 # Referat Tariflarini tanlash
-referat_tariff_kb = InlineKeyboardMarkup(
-    inline_keyboard=[
-        [InlineKeyboardButton(text="Oddiy (8 000 so'm)", callback_data="ref_tariff_oddiy")],
-        [InlineKeyboardButton(text="PRO (14 900 so'm) 🔥", callback_data="ref_tariff_pro")],
-        [InlineKeyboardButton(text="⬅️ Ortga", callback_data="tariff_referat_back")]
+def get_referat_tariff_kb(has_promo: bool = False):
+    oddiy_price = 2400 if has_promo else 8000
+    pro_price = 4470 if has_promo else 14900
+    kb = [
+        [InlineKeyboardButton(text=f"Oddiy ({oddiy_price:,} so'm)".replace(',', ' '), callback_data="ref_tariff_oddiy")],
+        [InlineKeyboardButton(text=f"PRO ({pro_price:,} so'm) 🔥".replace(',', ' '), callback_data="ref_tariff_pro")],
     ]
-)
+    if not has_promo:
+        kb.append([InlineKeyboardButton(text="🎁 Promo-kod kiritish", callback_data="ref_promo")])
+    kb.append([InlineKeyboardButton(text="⬅️ Ortga", callback_data="tariff_referat_back")])
+    return InlineKeyboardMarkup(inline_keyboard=kb)
 
 # Kurs ishi tasdiqlash uchun inline tugmalar
 course_confirm_inline_kb = InlineKeyboardMarkup(
@@ -234,13 +239,17 @@ course_edit_selection_kb = InlineKeyboardMarkup(
 )
 
 # Kurs ishi Tariflarini tanlash
-course_tariff_kb = InlineKeyboardMarkup(
-    inline_keyboard=[
-        [InlineKeyboardButton(text="Oddiy (15 000 so'm)", callback_data="course_tariff_oddiy")],
-        [InlineKeyboardButton(text="PRO (29 900 so'm) 🔥", callback_data="course_tariff_pro")],
-        [InlineKeyboardButton(text="⬅️ Ortga", callback_data="tariff_course_back")]
+def get_course_tariff_kb(has_promo: bool = False):
+    oddiy_price = 4500 if has_promo else 15000
+    pro_price = 8970 if has_promo else 29900
+    kb = [
+        [InlineKeyboardButton(text=f"Oddiy ({oddiy_price:,} so'm)".replace(',', ' '), callback_data="course_tariff_oddiy")],
+        [InlineKeyboardButton(text=f"PRO ({pro_price:,} so'm) 🔥".replace(',', ' '), callback_data="course_tariff_pro")],
     ]
-)
+    if not has_promo:
+        kb.append([InlineKeyboardButton(text="🎁 Promo-kod kiritish", callback_data="course_promo")])
+    kb.append([InlineKeyboardButton(text="⬅️ Ortga", callback_data="tariff_course_back")])
+    return InlineKeyboardMarkup(inline_keyboard=kb)
 
 
 
@@ -269,6 +278,6 @@ __all__ = [
     "language_selection_kb", "referat_confirm_inline_kb", "referat_edit_selection_kb",
     "course_confirm_inline_kb", "course_edit_selection_kb",
     "referat_type_kb", "referat_plan_approval_kb", "course_plan_approval_kb",
-    "subscribe_channel_kb", "referat_tariff_kb", "course_tariff_kb",
+    "subscribe_channel_kb", "get_referat_tariff_kb", "get_course_tariff_kb",
     "get_page_selection_kb"
 ]

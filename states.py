@@ -12,6 +12,7 @@ class ReferatState(StatesGroup):
     til = State()
     confirmation = State()
     tariff_selection = State()
+    promo = State()
     waiting_for_plan_approval = State()
     # Edit mode states
     edit_mode = State()
@@ -29,6 +30,7 @@ class CourseWorkState(StatesGroup):
     til = State()
     confirmation = State()
     tariff_selection = State()
+    promo = State()
     waiting_for_plan_approval = State()
     # Edit mode states
     edit_mode = State()

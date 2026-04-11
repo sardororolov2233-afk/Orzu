@@ -10,10 +10,10 @@ from states import ReferatState
 from keyboards import (
     main_menu, referat_type_kb, referat_confirm_inline_kb, 
     referat_edit_selection_kb, language_selection_kb, 
-    referat_plan_approval_kb, referat_tariff_kb
+    referat_plan_approval_kb, get_referat_tariff_kb
 )
 from utils.referat_doc import create_referat_document
-from database import save_user_referat_data, get_user_referat_data, get_user_balance, update_user_balance, log_user_action
+from database import save_user_referat_data, get_user_referat_data, get_user_balance, update_user_balance, log_user_action, has_used_promo, mark_promo_used
 from ai.brain import ask_ai, load_prompt, MODEL_SMART, MODEL_RESERVE
 
 router = Router()
@@ -199,14 +199,58 @@ async def cancel_referat(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(ReferatState.confirmation, F.data == "referat_confirm")
 async def ask_referat_tariff(callback: CallbackQuery, state: FSMContext):
-    await callback.message.edit_text(
+    data = await state.get_data()
+    has_promo = data.get('has_active_promo', False)
+    
+    msg_text = (
         "<b>Ta'rifni tanlang:</b>\n\n"
         "🔹 <b>Oddiy</b> (8 000 so'm) - Standart sifatdagi referat yoki mustaqil ish.\n"
-        "🔥 <b>PRO</b> (14 900 so'm) - Yuqori sifatli, chuqur tahliliy referat.",
-        reply_markup=referat_tariff_kb,
+        "🔥 <b>PRO</b> (14 900 so'm) - Yuqori sifatli, chuqur tahliliy referat."
+    )
+    if has_promo:
+         msg_text += "\n\n🎁 <i>Sizda 70% lik chegirma faollashtirilgan!</i>"
+
+    await callback.message.edit_text(
+        msg_text,
+        reply_markup=get_referat_tariff_kb(has_promo),
         parse_mode="HTML"
     )
     await state.set_state(ReferatState.tariff_selection)
+
+@router.callback_query(ReferatState.tariff_selection, F.data == "ref_promo")
+async def ask_referat_promo_code(callback: CallbackQuery, state: FSMContext):
+    await callback.message.edit_text("🎁 <b>Promo-kodni kiriting:</b>", parse_mode="HTML")
+    await state.set_state(ReferatState.promo)
+
+@router.message(ReferatState.promo)
+async def process_referat_promo_code(message: Message, state: FSMContext):
+    code = message.text.strip().upper()
+    user_id = message.from_user.id
+    
+    if code == "PROMO70":
+        if await has_used_promo(user_id, "PROMO70"):
+            await message.answer("❌ Siz bu promo-koddan allaqachon foydalangansiz.")
+            await show_confirmation(message, state)
+        else:
+            await state.update_data(has_active_promo=True, promo_code="PROMO70")
+            await message.answer("✅ Promo-kod qabul qilindi! Sizga 70% chegirma taqdim etildi.")
+            
+            # Go directly back to tariff selection
+            # Because show_confirmation expects we just reviewed data, but here we just want to select tariff again.
+            # Emulate ask_referat_tariff
+            data = await state.get_data()
+            has_promo = data.get('has_active_promo', False)
+            msg_text = (
+                "<b>Ta'rifni tanlang:</b>\n\n"
+                "🔹 <b>Oddiy</b> (8 000 so'm) - Standart sifatdagi referat yoki mustaqil ish.\n"
+                "🔥 <b>PRO</b> (14 900 so'm) - Yuqori sifatli, chuqur tahliliy referat.\n\n"
+                "🎁 <i>Sizda 70% lik chegirma faollashtirilgan!</i>"
+            )
+            await message.answer(msg_text, reply_markup=get_referat_tariff_kb(has_promo), parse_mode="HTML")
+            await state.set_state(ReferatState.tariff_selection)
+    else:
+        await message.answer("❌ Noto'g'ri promo-kod kiritildi.")
+        await show_confirmation(message, state)
 
 @router.callback_query(ReferatState.tariff_selection, F.data == "tariff_referat_back")
 async def referat_tariff_back(callback: CallbackQuery, state: FSMContext):
@@ -216,7 +260,12 @@ async def referat_tariff_back(callback: CallbackQuery, state: FSMContext):
 async def start_plan_generation(callback: CallbackQuery, state: FSMContext, bot: Bot):
     user_id = callback.from_user.id
     
-    price = 8000 if callback.data == "ref_tariff_oddiy" else 14900
+    base_price = 8000 if callback.data == "ref_tariff_oddiy" else 14900
+    
+    data = await state.get_data()
+    has_promo = data.get('has_active_promo', False)
+    price = int(base_price * 0.3) if has_promo else base_price
+    
     await state.update_data(tariff_price=price)
     
     # Check balance
@@ -339,6 +388,12 @@ async def generate_full_content(callback: CallbackQuery, state: FSMContext):
     # Deduct balance and log action
     await update_user_balance(user_id, -price)
     await log_user_action(user_id, 'referat', amount=price)
+    
+    # Mark promo as used if applicable
+    if data.get('has_active_promo') and data.get('promo_code'):
+        await mark_promo_used(user_id, data['promo_code'])
+        # Optional: remove from state so it doesn't persist wrongly in future runs
+        await state.update_data(has_active_promo=False, promo_code=None)
 
     # --- Logic Analysis & Improvement ---
     # User Feedback: Strict page calculation causes logical issues and poor quality.

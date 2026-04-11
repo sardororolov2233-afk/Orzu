@@ -4,10 +4,10 @@ from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery, FSInputFile
 from aiogram.fsm.context import FSMContext
 from states import CourseWorkState
-from keyboards import main_menu, course_confirm_inline_kb, course_edit_selection_kb, language_selection_kb, course_plan_approval_kb, course_tariff_kb
+from keyboards import main_menu, course_confirm_inline_kb, course_edit_selection_kb, language_selection_kb, course_plan_approval_kb, get_course_tariff_kb
 
 from ai.brain import ask_ai, load_prompt, MODEL_SMART, MODEL_RESERVE
-from database import save_user_profile, get_user_profile, get_user_balance, update_user_balance, log_user_action
+from database import save_user_profile, get_user_profile, get_user_balance, update_user_balance, log_user_action, has_used_promo, mark_promo_used
 from utils.course_doc import create_course_word_document
 from utils.common import MAIN_MENU_COMMANDS
 
@@ -349,14 +349,55 @@ async def get_til(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(CourseWorkState.confirmation, F.data == "course_confirm")
 async def ask_course_tariff(callback: CallbackQuery, state: FSMContext):
-    await callback.message.edit_text(
+    data = await state.get_data()
+    has_promo = data.get('has_active_promo', False)
+    
+    msg_text = (
         "<b>Ta'rifni tanlang:</b>\n\n"
         "🔹 <b>Oddiy</b> (15 000 so'm) - Standart sifatdagi kurs ishi.\n"
-        "🔥 <b>PRO</b> (29 900 so'm) - Yuqori sifatli, chuqur tahliliy va ilmiy akademik kurs ishi.",
-        reply_markup=course_tariff_kb,
+        "🔥 <b>PRO</b> (29 900 so'm) - Yuqori sifatli, chuqur tahliliy va ilmiy akademik kurs ishi."
+    )
+    if has_promo:
+        msg_text += "\n\n🎁 <i>Sizda 70% lik chegirma faollashtirilgan!</i>"
+        
+    await callback.message.edit_text(
+        msg_text,
+        reply_markup=get_course_tariff_kb(has_promo),
         parse_mode="HTML"
     )
     await state.set_state(CourseWorkState.tariff_selection)
+
+@router.callback_query(CourseWorkState.tariff_selection, F.data == "course_promo")
+async def ask_course_promo_code(callback: CallbackQuery, state: FSMContext):
+    await callback.message.edit_text("🎁 <b>Promo-kodni kiriting:</b>", parse_mode="HTML")
+    await state.set_state(CourseWorkState.promo)
+
+@router.message(CourseWorkState.promo)
+async def process_course_promo_code(message: Message, state: FSMContext):
+    code = message.text.strip().upper()
+    user_id = message.from_user.id
+    
+    if code == "PROMO70":
+        if await has_used_promo(user_id, "PROMO70"):
+            await message.answer("❌ Siz bu promo-koddan allaqachon foydalangansiz.")
+            await show_course_confirmation(message, state)
+        else:
+            await state.update_data(has_active_promo=True, promo_code="PROMO70")
+            await message.answer("✅ Promo-kod qabul qilindi! Sizga 70% chegirma taqdim etildi.")
+            
+            data = await state.get_data()
+            has_promo = data.get('has_active_promo', False)
+            msg_text = (
+                "<b>Ta'rifni tanlang:</b>\n\n"
+                "🔹 <b>Oddiy</b> (15 000 so'm) - Standart sifatdagi kurs ishi.\n"
+                "🔥 <b>PRO</b> (29 900 so'm) - Yuqori sifatli, chuqur tahliliy va ilmiy akademik kurs ishi.\n\n"
+                "🎁 <i>Sizda 70% lik chegirma faollashtirilgan!</i>"
+            )
+            await message.answer(msg_text, reply_markup=get_course_tariff_kb(has_promo), parse_mode="HTML")
+            await state.set_state(CourseWorkState.tariff_selection)
+    else:
+        await message.answer("❌ Noto'g'ri promo-kod kiritildi.")
+        await show_course_confirmation(message, state)
 
 @router.callback_query(CourseWorkState.tariff_selection, F.data == "tariff_course_back")
 async def course_tariff_back(callback: CallbackQuery, state: FSMContext):
@@ -368,7 +409,12 @@ async def course_tariff_back(callback: CallbackQuery, state: FSMContext):
 async def start_course_generation(callback: CallbackQuery, state: FSMContext):
     user_id = callback.from_user.id
     
-    price = 15000 if callback.data == "course_tariff_oddiy" else 29900
+    base_price = 15000 if callback.data == "course_tariff_oddiy" else 29900
+    
+    data = await state.get_data()
+    has_promo = data.get('has_active_promo', False)
+    price = int(base_price * 0.3) if has_promo else base_price
+    
     await state.update_data(tariff_price=price)
     
     # Check balance
@@ -478,6 +524,11 @@ async def approve_course_plan(callback: CallbackQuery, state: FSMContext):
         # Deduct balance and log action
         await update_user_balance(user_id, -price)
         await log_user_action(user_id, 'course_work', amount=price)
+        
+        # Mark promo as used if applicable
+        if data.get('has_active_promo') and data.get('promo_code'):
+            await mark_promo_used(user_id, data['promo_code'])
+            await state.update_data(has_active_promo=False, promo_code=None)
         
         # Send document
         doc = FSInputFile(word_file)

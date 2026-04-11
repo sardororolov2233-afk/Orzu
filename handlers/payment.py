@@ -46,6 +46,7 @@ async def payment_start_callback(callback: CallbackQuery):
 @router.callback_query(F.data.startswith("pay_"))
 async def payment_amount_selected(callback: CallbackQuery, state: FSMContext):
     amount_map = {
+        "pay_5000": 5000,
         "pay_10000": 10000,
         "pay_15000": 15000,
         "pay_20000": 20000,

@@ -180,6 +180,19 @@ async def log_user_action(user_id: int, action_type: str, amount: int = 0):
     except Exception as e:
         logger.error(f"Error logging action for {user_id}: {e}")
 
+async def has_used_promo(user_id: int, promo_code: str) -> bool:
+    """Check if user has already used this promo code."""
+    try:
+        response = await asyncio.to_thread(supabase.table("statistics").select("*").eq("user_id", user_id).eq("action_type", f"promo_{promo_code}").execute)
+        return len(response.data) > 0 if response.data else False
+    except Exception as e:
+        logger.error(f"Error checking promo for {user_id}: {e}")
+        return False
+
+async def mark_promo_used(user_id: int, promo_code: str):
+    """Mark a promo code as used by the user."""
+    await log_user_action(user_id, f"promo_{promo_code}", amount=0)
+
 async def get_admin_stats() -> Dict[str, Any]:
     """Get general statistics for admin."""
     from datetime import datetime
