@@ -6,6 +6,8 @@ main_menu = ReplyKeyboardMarkup(
         [KeyboardButton(text="📄 Referat yaratish"), KeyboardButton(text="📊 Taqdimot yaratish")],
         [KeyboardButton(text="Kurs ishi"), KeyboardButton(text="💰 Tayyor ishlar")],
         [KeyboardButton(text="💳 Balans"), KeyboardButton(text="🆘 Yordam")],
+        [KeyboardButton(text="💵 Narxlar"), KeyboardButton(text="📝 Buyurtma asosida yaratish")],
+        [KeyboardButton(text="🎓 Bitiruv Malakaviy ishi")],
     ],
     resize_keyboard=True
 )

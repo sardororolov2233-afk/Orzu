@@ -151,6 +151,45 @@ async def main():
                 reply_markup=main_menu
              )
 
+        @dp.message(F.text == "💵 Narxlar")
+        async def prices_handler(message: Message):
+             await message.answer(
+                "💰 <b>Xizmatlarimiz narxlari bilan tanishing:</b>\n\n"
+                "📄 <b>Referat va Mustaqil ishlar:</b>\n"
+                "🔹 Oddiy tarif: 8 000 so'm <i>(Promo-kod bilan: 2 400 so'm)</i>\n"
+                "🔥 PRO tarif: 14 900 so'm <i>(Promo-kod bilan: 4 470 so'm)</i>\n\n"
+                "📚 <b>Kurs ishlari:</b>\n"
+                "🔹 Oddiy tarif: 15 000 so'm <i>(Promo-kod bilan: 4 500 so'm)</i>\n"
+                "🔥 PRO tarif: 29 900 so'm <i>(Promo-kod bilan: 8 970 so'm)</i>\n\n"
+                "📊 <b>Taqdimot (Slaydlar):</b>\n"
+                "🔹 Web dasturimiz orqali narxlanadi (slaydlar soniga qarab).\n\n"
+                "🎁 <i>Eslatma: Promo-kodlarni botimiz va @yordamch_AI kanalimiz orqali olishingiz mumkin!</i>",
+                reply_markup=main_menu,
+                parse_mode="HTML"
+             )
+
+        @dp.message(F.text == "📝 Buyurtma asosida yaratish")
+        async def order_handler(message: Message):
+             await message.answer(
+                "📝 <b>Maxsus buyurtma asosida yaratish</b>\n\n"
+                "Sizda o'ziga xos talablar bormi? Yoki bot funksiyalari doirasidan tashqari maxsus murakkab ish kerakmi?\n"
+                "Batafsil ma'lumot va kelishuv uchun to'g'ridan-to'g'ri administratorimizga murojaat qiling:\n\n"
+                "👨‍💻 <b>Adminga murojaat qiling:</b> @sardorbekuralov",
+                reply_markup=main_menu,
+                parse_mode="HTML"
+             )
+
+        @dp.message(F.text == "🎓 Bitiruv Malakaviy ishi")
+        async def bmi_handler(message: Message):
+             await message.answer(
+                "🎓 <b>Bitiruv Malakaviy Ishi (BMI)</b>\n\n"
+                "Bitiruv malakaviy ishlari va magistrlik dissertatsiyalarini tayyorlash bo'yicha maxsus rahbarlik va yordam ko'rsatamiz.\n"
+                "Talablaringizni muhokama qilish uchun biz bilan bog'laning:\n\n"
+                "👨‍💻 <b>Bizga murojat qiling:</b> @sardorbekuralov",
+                reply_markup=main_menu,
+                parse_mode="HTML"
+             )
+
         # Routerni ulash
         dp.include_router(admin.router)
         dp.include_router(referat.router)
