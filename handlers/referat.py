@@ -560,7 +560,7 @@ async def generate_full_content(callback: CallbackQuery, state: FSMContext):
         
         if sent_success:
             try:
-                await callback.message.answer("✅ Referat muvaffaqiyatli yakunlandi!", reply_markup=main_menu)
+                await callback.message.answer("✅ Referat muvaffaqiyatli yakunlandi!\n\nTanlovingiz uchun minnadormiz. Agar ushbu ishni yanada professional darajada qabul qilmoqchi bo'lsangiz mutahasislarimizga murojat qiling: @sardorbekuralov", reply_markup=main_menu)
             except:
                 pass # Ignore error on success message if doc is sent
         else:

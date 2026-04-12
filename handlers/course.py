@@ -532,7 +532,8 @@ async def approve_course_plan(callback: CallbackQuery, state: FSMContext):
         
         # Send document
         doc = FSInputFile(word_file)
-        await callback.message.answer_document(document=doc, caption=f"🎓 {data['tema']}", reply_markup=main_menu)
+        await callback.message.answer_document(document=doc, caption=f"🎓 {data['tema']}")
+        await callback.message.answer("✅ Kurs ishi muvaffaqiyatli yakunlandi!\n\nTanlovingiz uchun minnadormiz. Agar ushbu ishni yanada professional darajada qabul qilmoqchi bo'lsangiz mutahasislarimizga murojat qiling: @sardorbekuralov", reply_markup=main_menu)
     else:
         await callback.message.answer("❌ Fayl yaratishda xatolik.", reply_markup=main_menu)
     
