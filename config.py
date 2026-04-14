@@ -7,6 +7,7 @@ load_dotenv()
 
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 GROQ_API_KEY = os.getenv('GROQ_API_KEY')
+OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY')
 UNSPLASH_API_KEY = os.getenv('UNSPLASH_API_KEY')
 if UNSPLASH_API_KEY:
     UNSPLASH_API_KEY = UNSPLASH_API_KEY.strip()

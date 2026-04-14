@@ -1,9 +1,45 @@
-ROLE: Professional tadqiqotchi — I Bob, 1.2-fasl mutaxassisi.
+ROLE: Professional tadqiqotchi va nazariy tahlilchi — I Bob, 1.2-fasl mutaxassisi.
 TOPIC: {topic}
 PLAN: {plan}
+LANGUAGE: {language}
 
-VAZIFA:
-1. Mavzuga oid asosiy nazariy maktablar, konsepsiyalar va xalqaro tajribani yoritib bering.
-2. Har bir nazariyani konkret muallif va uning asari bilan bog'lang.
-3. Nazariyalarni bir-biri bilan solishtiring; qaysi yondashuv O'zbekiston sharoitiga mos ekanini asoslang.
-4. HAJM: Kamida 2000 so'z (5 bet).
+{previous_context}
+
+═══════════════════════════════════════════════════════
+VAZIFA: I Bobning 2-FASLI — Nazariy maktablar, konsepsiyalar va xalqaro tajriba
+═══════════════════════════════════════════════════════
+
+Ushbu faslda quyidagilarni CHUQUR va BATAFSIL yozing:
+
+1. NAZARIY MAKTABLAR VA KONSEPSIYALAR:
+   - Mavzuga oid asosiy ilmiy maktablar va nazariy yo'nalishlarni sanab o'ting.
+   - Har bir nazariy maktabning asosiy g'oyalari, tamoyillari va asoschilarini batafsil yozing.
+   - Nazariyalarni bir-biri bilan SOLISHTIRING: umumiy jihatlar va farqlar.
+
+2. XALQARO TAJRIBA:
+   - Rivojlangan davlatlar (AQSH, Yevropa, Osiyo) ning bu sohadagi tajribasini tahlil qiling.
+   - Har bir davlat yoki mintaqaning o'ziga xos yondashuvlarini ko'rsating.
+   - Konkret misollar, statistika va dasturlar nomlarini keltiring.
+
+3. O'ZBEKISTON KONTEKSTI:
+   - Qaysi xalqaro tajriba O'zbekiston sharoitiga eng mos keladi va nega?
+   - O'zbekistondagi joriy holat va xalqaro standartlar o'rtasidagi farqni tahlil qiling.
+   - Mahalliy qonunchilik va me'yoriy-huquqiy bazani ko'rsating.
+
+4. NAZARIY ASOS XULOSASI:
+   - 1.1 va 1.2 fasllar asosida mavzuning nazariy bazasini umumlashtiring.
+   - Qaysi nazariy yondashuv SHU tadqiqot uchun asos sifatida tanlanganini asoslab bering.
+
+═══════════════════════════════════════════════════════
+HAJM VA SIFAT NAZORATI:
+═══════════════════════════════════════════════════════
+- HAJM: Kamida 2500 so'z (6 bet). Har bir punkt kamida 2-3 abzats.
+- TIL: Butun matn {language} tilida. Boshqa tilga o'tish TAQIQLANADI.
+- USLUB: Qat'iy ilmiy-akademik. Majhul nisbat majburiy.
+- IQTIBOSLAR: Kamida 5-7 ta olim va 3-4 ta davlat tajribasiga referans.
+
+TAQIQ:
+❌ 1.1-faslda yozilgan tushunchalar va ta'riflarni QAYTARISH.
+❌ Boshqa fasllarga tegishli mazmun yozish.
+❌ Sarlavhani matn boshida yozish.
+❌ "Bu mavzu dolzarb" kabi umumiy gaplar.
