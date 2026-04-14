@@ -6,7 +6,7 @@ LANGUAGE: {language}
 STRICT STRUCTURE (Har bir punkt MAJBURIY — birortasini ham tashlab ketish MUMKIN EMAS):
 ═══════════════════════════════════════════════════════
 
-Matnni quyidagi 8 ta punktga bo'lib yozing. Har bir punkt sarlavhasini qalin (bold) stilda yozing:
+Matnni quyidagi 7 ta punktga bo'lib yozing. Har bir punkt sarlavhasini qalin (bold) stilda yozing:
 
 **1. Mavzuning dolzarbligi va zarurati.**
    - Nega bu mavzu hozirgi kunda muhim va dolzarb?
@@ -41,10 +41,6 @@ Matnni quyidagi 8 ta punktga bo'lib yozing. Har bir punkt sarlavhasini qalin (bo
 **7. Tadqiqot metodlari.**
    - Qiyosiy tahlil, statistik metodlar, kuzatuv, so'rovnoma, modellashtirish va boshqa metodlarni sanab o'ting.
    - Har bir metodning SHU tadqiqotda qanday qo'llanilishini qisqa tushuntiring.
-
-**8. Ishning tuzilishi.**
-   - Kurs ishi necha bob va fasldan iborat ekanini yozing.
-   - Har bir bob va faslda nima haqida yozilganini 1-2 jumlada izohlang.
 
 ═══════════════════════════════════════════════════════
 USLUB VA HAJM TALABLARI:
