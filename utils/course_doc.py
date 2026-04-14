@@ -6,12 +6,184 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_LINE_SPACING
 from datetime import datetime
 from pathlib import Path
 import logging
+from lxml import etree
 
 logger = logging.getLogger(__name__)
 
+# ─────────────────────────────────────────────────────────
+# FOOTNOTE (SNOSKA) YORDAMCHI FUNKSIYASI
+# ─────────────────────────────────────────────────────────
+
+def add_footnote(paragraph, ref_text: str, doc: Document):
+    """
+    Paragrafga Word footnote (snoska) qo'shadi.
+    ref_text — snoska pastida ko'rsatiladigan matn (adabiyot).
+    """
+    # footnote ID ni olish (joriy footnote soni + 1)
+    body = doc.element.body
+    
+    # footnotes part ni topish
+    try:
+        footnotes_part = doc.part.footnotes_part
+    except AttributeError:
+        # footnotes part mavjud bo'lmasa, yaratish
+        from docx.opc.part import Part
+        from docx.opc.constants import RELATIONSHIP_TYPE as RT
+        import zipfile, io
+        footnotes_xml = (
+            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            '<w:footnotes xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas" '
+            'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+            '<w:footnote w:type="separator" w:id="-1">'
+            '<w:p><w:r><w:separator/></w:r></w:p>'
+            '</w:footnote>'
+            '<w:footnote w:type="continuationSeparator" w:id="0">'
+            '<w:p><w:r><w:continuationSeparator/></w:r></w:p>'
+            '</w:footnote>'
+            '</w:footnotes>'
+        )
+        footnotes_part = doc.part.add_footnotes_part(footnotes_xml)
+    
+    # Mavjud footnote ID larini topish
+    fns_elem = footnotes_part._element
+    existing_ids = [int(fn.get(ns.qn('w:id'), 0)) 
+                    for fn in fns_elem.findall(ns.qn('w:footnote'))
+                    if fn.get(ns.qn('w:id'), '0').lstrip('-').isdigit()]
+    new_id = max(existing_ids, default=0) + 1
+    
+    # Footnote elementi yaratish
+    fn_elem = OxmlElement('w:footnote')
+    fn_elem.set(ns.qn('w:id'), str(new_id))
+    
+    fn_p = OxmlElement('w:p')
+    fn_pPr = OxmlElement('w:pPr')
+    fn_pStyle = OxmlElement('w:pStyle')
+    fn_pStyle.set(ns.qn('w:val'), 'FootnoteText')
+    fn_pPr.append(fn_pStyle)
+    fn_p.append(fn_pPr)
+    
+    # Footnote raqami (superscript)
+    fn_r_num = OxmlElement('w:r')
+    fn_rPr_num = OxmlElement('w:rPr')
+    fn_rStyle_num = OxmlElement('w:rStyle')
+    fn_rStyle_num.set(ns.qn('w:val'), 'FootnoteReference')
+    fn_rPr_num.append(fn_rStyle_num)
+    fn_r_num.append(fn_rPr_num)
+    fn_ref_mark = OxmlElement('w:footnoteRef')
+    fn_r_num.append(fn_ref_mark)
+    fn_p.append(fn_r_num)
+    
+    # Footnote matni
+    fn_r_text = OxmlElement('w:r')
+    fn_rPr_text = OxmlElement('w:rPr')
+    fn_rStyle_text = OxmlElement('w:rStyle')
+    fn_rStyle_text.set(ns.qn('w:val'), 'FootnoteText')
+    fn_rPr_text.append(fn_rStyle_text)
+    fn_r_text.append(fn_rPr_text)
+    fn_t = OxmlElement('w:t')
+    fn_t.set(ns.qn('xml:space'), 'preserve')
+    fn_t.text = ' ' + ref_text
+    fn_r_text.append(fn_t)
+    fn_p.append(fn_r_text)
+    
+    fn_elem.append(fn_p)
+    fns_elem.append(fn_elem)
+    
+    # Paragrafga footnote reference belgisi qo'shish
+    run = paragraph.add_run()
+    run_elem = run._r
+    
+    rPr = OxmlElement('w:rPr')
+    rStyle = OxmlElement('w:rStyle')
+    rStyle.set(ns.qn('w:val'), 'FootnoteReference')
+    rPr.append(rStyle)
+    run_elem.insert(0, rPr)
+    
+    fn_ref = OxmlElement('w:footnoteReference')
+    fn_ref.set(ns.qn('w:id'), str(new_id))
+    run_elem.append(fn_ref)
+
+
+def parse_references_list(refs_text: str) -> dict:
+    """
+    Adabiyotlar ro'yxatidan {1: 'manba matni', 2: '...'} dict qaytaradi.
+    """
+    refs = {}
+    if not refs_text:
+        return refs
+    lines = refs_text.strip().split('\n')
+    for line in lines:
+        line = line.replace('**', '').strip()
+        # "1. Familiya ..." yoki "1) ..." formatni qidirish
+        m = re.match(r'^(\d+)[.)]\s*(.+)', line)
+        if m:
+            num = int(m.group(1))
+            text = m.group(2).strip()
+            refs[num] = text
+    return refs
+
+
+def add_paragraph_with_footnotes(doc: Document, text: str, refs: dict, style_fn=None):
+    """
+    Matndagi [N] belgisini topib, Word footnote ga aylantiradi.
+    Har bir [N] uchun refs[N] matnini snoska sifatida qo'shadi.
+    """
+    # [N] belgisini topish uchun pattern
+    pattern = re.compile(r'\[(\d+)\]')
+    parts = pattern.split(text)
+    
+    # Paragraf yaratish
+    para = doc.add_paragraph()
+    para_format = para.paragraph_format
+    para_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+    para_format.line_spacing_rule = WD_LINE_SPACING.ONE_POINT_FIVE
+    para_format.first_line_indent = Inches(0.49)
+    
+    if style_fn:
+        style_fn(para)
+    
+    i = 0
+    while i < len(parts):
+        if i % 2 == 0:
+            # Oddiy matn qismi
+            chunk = parts[i]
+            if chunk:
+                # ** bold ** ni qo'llab-quvvatlash
+                bold_parts = re.split(r'(\*\*.*?\*\*)', chunk)
+                for bp in bold_parts:
+                    if bp.startswith('**') and bp.endswith('**'):
+                        bp_text = bp.replace('**', '')
+                        if bp_text:
+                            r = para.add_run(bp_text)
+                            r.bold = True
+                            r.font.name = 'Times New Roman'
+                            r.font.size = Pt(14)
+                    else:
+                        if bp:
+                            r = para.add_run(bp)
+                            r.font.name = 'Times New Roman'
+                            r.font.size = Pt(14)
+                            r.bold = False
+        else:
+            # Bu [N] raqami
+            ref_num = int(parts[i])
+            ref_text = refs.get(ref_num, f'Manba #{ref_num}')
+            try:
+                add_footnote(para, ref_text, doc)
+            except Exception as e:
+                # Footnote qo'shishda xatolik bo'lsa, oddiy [N] sifatida qoldirish
+                logger.warning(f"Footnote qo'shishda xatolik: {e}, oddiy matn sifatida qoldirildi")
+                r = para.add_run(f'[{ref_num}]')
+                r.font.name = 'Times New Roman'
+                r.font.size = Pt(14)
+                r.font.superscript = True
+        i += 1
+    
+    return para
+
 def create_course_word_document(tema: str, sahifa: int, uslub: str, text: str, 
                         universitet: str, fakultet: str, muallif: str, 
-                        kurs_guruh: str, doc_type: str = "KURS ISHI", plan: str = None, user_id: int = None) -> str: 
+                        kurs_guruh: str, doc_type: str = "KURS ISHI", plan: str = None, user_id: int = None, is_pro: bool = False) -> str: 
     """Word formatida KURS ISHI yaratish (Jadvallar va Maxsus sarlavhalar bilan)""" 
     try: 
         doc = Document() 
@@ -77,6 +249,40 @@ def create_course_word_document(tema: str, sahifa: int, uslub: str, text: str,
         indent = Inches(3.5) 
         p_b = doc.add_paragraph(f"Bajardi: {muallif}") 
         p_b.paragraph_format.left_indent = indent 
+        
+        if kurs_guruh: 
+            p_g = doc.add_paragraph(f"{kurs_guruh}") 
+            p_g.paragraph_format.left_indent = indent 
+
+        label = "Ilmiy rahbar: "
+        p_t = doc.add_paragraph(f"{label} __________________") 
+        p_t.paragraph_format.left_indent = indent 
+
+        for _ in range(2): doc.add_paragraph() 
+        for _ in range(2): doc.add_paragraph() 
+        
+        doc.add_page_break() 
+        
+        # --------------------------------------------------------- 
+        # EXTRACT REFERENCES FOR FOOTNOTES (PRO)
+        # --------------------------------------------------------- 
+        refs_dict = {}
+        if is_pro:
+            lower_text = text.lower()
+            ref_idx = lower_text.rfind("foydalanilgan adabiyotlar")
+            if ref_idx == -1:
+                ref_idx = lower_text.rfind("adabiyotlar ro'yxati")
+            if ref_idx == -1:
+                ref_idx = lower_text.rfind("references")
+            if ref_idx == -1:
+                ref_idx = lower_text.rfind("список использованн")
+            
+            if ref_idx != -1:
+                refs_text = text[ref_idx:]
+                refs_dict = parse_references_list(refs_text)
+
+        # --------------------------------------------------------- 
+        # 2. MUNDARIJA
         
         if kurs_guruh: 
             p_g = doc.add_paragraph(f"{kurs_guruh}") 
@@ -217,33 +423,36 @@ def create_course_word_document(tema: str, sahifa: int, uslub: str, text: str,
                      run.font.name = 'Times New Roman'
                 else:
                     # Normal Text
-                    para = doc.add_paragraph()
-                    para_format = para.paragraph_format
-                    para_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-                    para_format.line_spacing_rule = WD_LINE_SPACING.ONE_POINT_FIVE
-                    para_format.first_line_indent = Inches(0.49)
-                    
-                    if '**' in line: 
-                        parts = re.split(r'(\*\*.*?\*\*)', line) 
-                        for part in parts: 
-                            if part.startswith('**') and part.endswith('**'): 
-                                text_part = part.replace('**', '')
-                                if text_part:
-                                    run = para.add_run(text_part) 
-                                    run.font.bold = True 
-                            else: 
-                                if part:
-                                    run = para.add_run(part) 
-                                    run.font.bold = False
-                            
-                            if run:
-                                run.font.name = 'Times New Roman' 
-                                run.font.size = Pt(14) 
+                    if is_pro and refs_dict and '[' in clean_text and re.search(r'\[\d+\]', clean_text):
+                        add_paragraph_with_footnotes(doc, clean_text, refs_dict)
                     else:
-                        run = para.add_run(clean_text)
-                        run.font.size = Pt(14)
-                        run.font.name = 'Times New Roman'
-                        run.font.bold = False
+                        para = doc.add_paragraph()
+                        para_format = para.paragraph_format
+                        para_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+                        para_format.line_spacing_rule = WD_LINE_SPACING.ONE_POINT_FIVE
+                        para_format.first_line_indent = Inches(0.49)
+                        
+                        if '**' in line: 
+                            parts = re.split(r'(\*\*.*?\*\*)', line) 
+                            for part in parts: 
+                                if part.startswith('**') and part.endswith('**'): 
+                                    text_part = part.replace('**', '')
+                                    if text_part:
+                                        run = para.add_run(text_part) 
+                                        run.font.bold = True 
+                                else: 
+                                    if part:
+                                        run = para.add_run(part) 
+                                        run.font.bold = False
+                                
+                                if run:
+                                    run.font.name = 'Times New Roman' 
+                                    run.font.size = Pt(14) 
+                        else:
+                            run = para.add_run(clean_text)
+                            run.font.size = Pt(14)
+                            run.font.name = 'Times New Roman'
+                            run.font.bold = False
             
             first_content_line = False
             i += 1

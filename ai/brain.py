@@ -38,7 +38,7 @@ else:
 # ═══════════════════════════════════════════════════════
 MODEL_SMART = "llama-3.3-70b-versatile"           # Oddiy tarif (Groq)
 MODEL_RESERVE = "llama-3.1-70b-versatile"          # Zaxira model (Groq)
-MODEL_PRO = "tngtech/deepseek-r1t-chimera"         # PRO tarif (OpenRouter)
+MODEL_PRO = "tngtech/deepseek-r1t2-chimera"        # PRO tarif (OpenRouter)
 
 def load_prompt(filename, **kwargs):
     """

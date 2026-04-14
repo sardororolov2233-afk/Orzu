@@ -14,10 +14,16 @@ from keyboards import (
 )
 from utils.referat_doc import create_referat_document
 from database import save_user_referat_data, get_user_referat_data, get_user_balance, update_user_balance, log_user_action, has_used_promo, mark_promo_used
-from ai.brain import ask_ai, load_prompt, MODEL_SMART, MODEL_RESERVE
+from ai.brain import ask_ai, ask_ai_pro, load_prompt, MODEL_SMART, MODEL_RESERVE
 
 router = Router()
 logger = logging.getLogger(__name__)
+
+async def ai_request(prompt_text: str, is_pro: bool = False, **kwargs):
+    if is_pro:
+        return await ask_ai_pro(prompt_text, **kwargs)
+    else:
+        return await ask_ai(prompt_text, **kwargs)
 
 # ---------------------------------------------------------
 # 1. Start Flow & Edit Interceptor
@@ -260,13 +266,14 @@ async def referat_tariff_back(callback: CallbackQuery, state: FSMContext):
 async def start_plan_generation(callback: CallbackQuery, state: FSMContext, bot: Bot):
     user_id = callback.from_user.id
     
-    base_price = 8000 if callback.data == "ref_tariff_oddiy" else 14900
+    is_pro = callback.data == "ref_tariff_pro"
+    base_price = 14900 if is_pro else 8000
     
     data = await state.get_data()
     has_promo = data.get('has_active_promo', False)
     price = int(base_price * 0.3) if has_promo else base_price
     
-    await state.update_data(tariff_price=price)
+    await state.update_data(tariff_price=price, is_pro=is_pro)
     
     # Check balance
     balance = await get_user_balance(user_id)
@@ -281,7 +288,7 @@ async def start_plan_generation(callback: CallbackQuery, state: FSMContext, bot:
     topic = data.get('tema')
     
     prompt = load_prompt("referat/10_referat_plan.txt", topic=topic, language=lang)
-    plan_text = await ask_ai(prompt, model=MODEL_SMART)
+    plan_text = await ai_request(prompt, is_pro=is_pro)
     
     if not plan_text:
         await callback.message.answer("❌ Reja tuzishda xatolik yuz berdi. Qaytadan urinib ko'ring.")
@@ -343,9 +350,10 @@ async def regenerate_plan(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text("🔄 Yangi reja tuzilmoqda...")
     data = await state.get_data()
     lang = data.get('til', "O'zbek")
+    is_pro = data.get('is_pro', False)
     
     prompt = load_prompt("referat/10_referat_plan.txt", topic=data['tema'], language=lang)
-    plan_text = await ask_ai(prompt)
+    plan_text = await ai_request(prompt, is_pro=is_pro)
     
     if not plan_text:
         await callback.message.answer("❌ Reja tuzishda xatolik.", reply_markup=main_menu)
@@ -374,9 +382,13 @@ async def generate_full_content(callback: CallbackQuery, state: FSMContext):
     user_id = callback.from_user.id
     data = await state.get_data()
     price = data.get('tariff_price', REFERAT_PRICE)
+    is_pro = data.get('is_pro', False)
+    
+    tarif_label = "🔥 PRO" if is_pro else "🔹 Oddiy"
     
     await callback.message.edit_text(
-        f"Ishingiz tayyor bo'lishini kuting, taxminiy vaqt 5 daqiqa.\n"
+        f"⏳ Ishingiz tayyor bo'lishini kuting ({tarif_label} tarif)...\n"
+        f"Taxminiy vaqt {'5-8' if is_pro else '3-5'} daqiqa.\n"
         f"<i>(Balansingizdan {price} so'm yechiladi)</i>", 
         parse_mode="HTML"
     )
@@ -408,6 +420,7 @@ async def generate_full_content(callback: CallbackQuery, state: FSMContext):
     
     # Helper for delay
     async def smart_delay():
+        import random
         seconds = random.randint(2, 5)
         await asyncio.sleep(seconds)
 
@@ -422,8 +435,8 @@ async def generate_full_content(callback: CallbackQuery, state: FSMContext):
                             instructions=instruction, 
                             language=lang)
             
-            # Use SMART model for generation to ensure high quality
-            content = await ask_ai(p, model=MODEL_SMART)
+            # Use appropriate model based on tariff
+            content = await ai_request(p, is_pro=is_pro)
             
             if not content:
                 logger.error(f"Failed to generate content for section: {section_name}")
@@ -560,7 +573,8 @@ async def generate_full_content(callback: CallbackQuery, state: FSMContext):
         
         if sent_success:
             try:
-                await callback.message.answer("✅ Referat muvaffaqiyatli yakunlandi!\n\nTanlovingiz uchun minnadormiz. Agar ushbu ishni yanada professional darajada qabul qilmoqchi bo'lsangiz mutahasislarimizga murojat qiling: @sardorbekuralov", reply_markup=main_menu)
+                quality_msg = "🔥 PRO sifat — DeepSeek R1T Chimera modeli bilan yaratildi" if is_pro else "✅ Standart sifat"
+                await callback.message.answer(f"✅ Referat muvaffaqiyatli yakunlandi!\n{quality_msg}\n\nTanlovingiz uchun minnadormiz. Agar ushbu ishni yanada professional darajada qabul qilmoqchi bo'lsangiz mutahasislarimizga murojat qiling: @sardorbekuralov", reply_markup=main_menu)
             except:
                 pass # Ignore error on success message if doc is sent
         else:

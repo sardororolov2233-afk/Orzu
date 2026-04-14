@@ -106,6 +106,11 @@ async def generate_full_course_work(topic: str, plan: str, lang: str, is_pro: bo
     
     # Dinamik fasl sonini aniqlash (C daraja)
     chapters = extract_chapters_from_plan(plan)
+    total_sections = sum(len(sections) for sections in chapters.values())
+    if total_sections == 0:
+        total_sections = 6
+        
+    current_ref_start = 1
     
     def get_section_title(prefix):
         for line in plan_lines:
@@ -179,6 +184,12 @@ async def generate_full_course_work(topic: str, plan: str, lang: str, is_pro: bo
             prefix = f"{i}.{j}."
             section_title = get_section_title(prefix)
             
+            # Adabiyotlarni xisoblash
+            ref_count = max(1, 20 // total_sections)
+            current_ref_end = current_ref_start + ref_count - 1
+            if i == 2 and j == num_sections:
+                current_ref_end = 20
+                
             await update_status(f"{section_title} kengaytirib yozilmoqda...")
             
             # Oldingi fasllar kontekstini tayyorlash (C daraja: Context Chain)
@@ -226,9 +237,14 @@ HAJM VA SIFAT NAZORATI:
 1. Minimal hajm: Kamida 2500 so'z (6 to'liq sahifa) bo'lishi SHART.
 2. Ilmiy chuqurlik: Mavzuni yuzaki emas, tubdan tahlil qiling. Har bir fikrni kengaytirib yozing.
 3. Ma'lumotlar: Aniq faktlar, sanalar, olimlarning ismlari va nazariyalarni keltiring.
-4. Iqtiboslar: Kamida 4-5 ta olim yoki manbaga referans bering.
 """
             
+            if is_pro:
+                p_fasl += f"\n4. SNOSKA VA IQTIBOSLAR (PRO TARIF): Matn ichida adabiyotlarga murojaat qilganda ALBATTA [{current_ref_start}] dan [{current_ref_end}] gacha bo'lgan raqamli havolalarni (snoska) ishlating. Boshqa raqamlarni aralashtirmang! Jami ushbu fasl uchun {current_ref_end - current_ref_start + 1} ta snoska yetarli (har bir sahifada taxminan 1-2 ta tushadigan qilib matnga mos ravishda tarqating)."
+            else:
+                p_fasl += "\n4. Iqtiboslar: Kamida 4-5 ta olim yoki manbaga referans bering."
+            
+            current_ref_start = current_ref_end + 1            
             content = await ai_request(p_fasl, is_pro=is_pro)
             
             if content:
@@ -654,7 +670,8 @@ async def approve_course_plan(callback: CallbackQuery, state: FSMContext):
         kurs_guruh=kurs_guruh_str,
         doc_type="KURS ISHI",
         plan=plan_text,
-        user_id=callback.from_user.id
+        user_id=callback.from_user.id,
+        is_pro=is_pro
     )
     
     await loading_msg.delete()
