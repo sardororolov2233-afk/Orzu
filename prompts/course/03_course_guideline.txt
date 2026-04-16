@@ -19,8 +19,8 @@ KURS ISHI YOZISH TARTIBI (QISQACHA)
    - Tuzilishi
 
 4. ASOSIY QISM (I va II BOB)
-   - I Bob: Nazariy. Tushunchalar, tarix, tasniflar. Iqtiboslar bilan. 
-   - II Bob: Amaliy/Tahliliy. Tahlil, statistika, metodika. 
+   - I Bob: Nazariy. Tushunchalar, tarix, tasniflar. Snoska yoki havolalar (References) ishlatilmaydi, faqat sof matn shaklida.
+   - II Bob: Amaliy/Tahliliy. Tahlil, statistika, metodika. Snoska va havolalar taqiqlanadi.
    - Har bir fasl mantiqiy bog'langan bo'lishi kerak.
 
 5. UMUMIY XULOSA (3-4 bet)

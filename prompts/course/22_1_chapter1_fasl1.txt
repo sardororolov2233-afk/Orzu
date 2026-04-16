@@ -22,8 +22,8 @@ Ushbu faslda quyidagilarni CHUQUR va BATAFSIL yozing:
    - Xronologik tartibda: qadimgi davrdan → zamonaviy davrgacha.
 
 3. OLIMLAR VA ULARNING HISSASI:
-   - Kamida 6-8 ta olim (xalqaro va mahalliy) ning nomlarini, asarlarini va ularding konkret hissalarini yozing.
-   - Format: "X.X. Familiya (yil) o'zining '...' nomli ishida ... deb ta'kidlagan."
+   - Kamida 6-8 ta olim (xalqaro va mahalliy) ning nomlarini, ularding asarlari va konkret hissalarini yozing.
+   - Format: "X.X. Familiya o'zining ishlarida ... deb ta'kidlagan." (Matn ichida aslo qavsda yilni yoki snoskani yozmang)
    - Har bir olimning pozitsiyasini qiyosiy tahlil qiling — qaysi jihatda bir-biridan farq qiladi?
 
 4. ZAMONAVIY YONDASHUVLAR:
@@ -36,7 +36,7 @@ HAJM VA SIFAT NAZORATI:
 - HAJM: Kamida 2500 so'z (6-7 bet). Har bir punkt kamida 2-3 abzats bo'lishi SHART.
 - TIL: Butun matn {language} tilida. Boshqa tilga o'tish TAQIQLANADI.
 - USLUB: Qat'iy ilmiy-akademik. Majhul nisbat majburiy.
-- IQTIBOSLAR: Kamida 6-8 ta olimga referans bering.
+- IQTIBOSLAR (TAQIQLANGAN): Matn orasida aslo snoska qoldirmang, qavs ichida adabiyotlarga yoki yilga havola bermang ([1], (2020) kabi ishoralar qat'iyan man etiladi). Barcha manbalar yakuniy qismiga qoldiriladi. Mantiqiy jihatdan butun matn toza holda bo'lishi kerak.
 
 TAQIQ:
 ❌ "Bu mavzu qiziqarli", "juda muhim" kabi filler-gaplar.

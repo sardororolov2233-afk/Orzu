@@ -147,13 +147,17 @@ async def generate_full_course_work(topic: str, plan: str, lang: str, is_pro: bo
     await update_status("Kirish qismi yozilmoqda...")
     
     p_intro = load_raw_prompt("course/21_0_full_intro.txt", topic=topic, plan=plan, language=lang)
+    p_intro += """
+
+MATN FORMATI VA ABZASLAR (MUHIM QOIDALAR):
+- Matnni mayda bo'laklarga ajratmang, har bir gapni yangi abzasdan boshlamang! Qator tashlab ketma-ket abzatslar yozish TAQIQLANADI.
+- Fasl boshida bitta abzasdan boshlang va butun matnni yaxlit bitta yoki ikkita juda yirik abzas shaklida, fikrlarni uzmasdan (bitta qatorda o'zaro bog'lab, davom ettirib) yozing.
+- Faqatgina rasm yoki jadval (table) kiritilgandan keyingina yangi abzasdan boshlashingiz mumkin.
+- Matn orasida aslo snoska (footnote) yoki adabiyotga havola (masalan, [1], (Ivanov, 2020) va hokazo) qoldirmang! Barcha adabiyotlar faqatgina ishning eng oxirida "Foydalanilgan adabiyotlar" ro'yxatida yoziladi. Matn ichini toza saqlang.
+"""
     intro_content = await ai_request(p_intro, is_pro=is_pro)
     
     if intro_content:
-        # PRO: Polishing
-        if is_pro:
-            intro_content = await polish_text(intro_content, topic, lang, is_pro=True)
-        
         full_text.append(f"{intro_hdr}\n\n{intro_content}")
         context_chain.append(generate_context_summary("KIRISH", intro_content))
     else:
@@ -222,25 +226,21 @@ TALAB (MANDATORY):
 ✅ Asosiy matn majburiy ravishda quyidagi tilda yozilishi shart: {lang}
 """
             
-            # Hajm talabi
             p_fasl += f"""
 
 HAJM VA SIFAT NAZORATI:
-1. Minimal hajm: Kamida 2500 so'z (6 to'liq sahifa) bo'lishi SHART.
-2. Ilmiy chuqurlik: Mavzuni yuzaki emas, tubdan tahlil qiling. Har bir fikrni kengaytirib yozing.
-3. Ma'lumotlar: Aniq faktlar, sanalar, olimlarning ismlari va nazariyalarni keltiring.
+1. Minimal hajm: Kamida 2500 so'z (6 to'liq sahifa) bo'lishi SHART. Chuqur tahlil qiling.
+
+MATN FORMATI, ABZASLAR VA IQTIBOSLAR (QAT'IY QOIDALAR):
+- Matnni mayda bo'laklarga ajratmang, har bir yangi gapni yangi abzasdan (qator tashlab) boshlamang! 
+- Fasl boshida bitta abzasdan boshlang va butun matnni yaxlit bir necha yirik qismlari shaklida, fikrlarni uzmasdan (yangi fikrni ham uzluksiz, abzasni davomidan) yozib keting.
+- Faqatgina jadval kiritilgandan keyingina yangi abzasdan boshlashga ruxsat etiladi. Qolgan holatlarda yirik bloklar shaklida, ilmiy tekstni davom ettirib yozing.
+- MATN ORASIGA SNOSKA (FOOTNOTE) VA ADABIYOT MANBALARINI ASLO KIRITMANG. Hech qanday [1], (Ahmedov, 2021) ko'rinishidagi ishoralarni yozmang! Barcha adabiyotlar faqat asosiy ishning eng oxirida yoziladi.
 """
-            
-            p_fasl += "\n4. Iqtiboslar: Kamida 4-5 ta olim yoki manbaga referans bering."
             
             content = await ai_request(p_fasl, is_pro=is_pro)
             
             if content:
-                # PRO: Polishing
-                if is_pro:
-                    await update_status(f"{section_title} tahrirlanmoqda (polish)...")
-                    content = await polish_text(content, topic, lang, is_pro=True)
-                
                 full_text.append(f"\n{section_title}\n{content}")
                 # Kontekst chainni yangilash
                 context_chain.append(generate_context_summary(section_title, content))
@@ -259,11 +259,17 @@ HAJM VA SIFAT NAZORATI:
     
     conclusion_prompt = load_raw_prompt("course/23_1_general_conclusion.txt", 
         topic=topic, plan=plan, language=lang, previous_context=conclusion_context)
+    
+    conclusion_prompt += """
+
+MATN FORMATI VA ABZASLAR (MUHIM QOIDALAR):
+- Matnni mayda bo'laklarga ajratib, har bir fikrni yangi qatordan boshlamang!
+- Butun xulosani yaxlit, uzluksiz tekst sifatida davom ettirib yozing. Matn orasida aslo snoska yoki adabiyot manbalarini ko'rsatmang!
+"""
+    
     conclusion = await ai_request(conclusion_prompt, is_pro=is_pro)
     
     if conclusion:
-        if is_pro:
-            conclusion = await polish_text(conclusion, topic, lang, is_pro=True)
         full_text.append(f"\n\n{conc_hdr}\n\n{conclusion}")
     else:
         full_text.append(f"\n\n{conc_hdr}\n\n(Xatolik yuz berdi)")

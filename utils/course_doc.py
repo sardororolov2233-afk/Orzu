@@ -93,25 +93,7 @@ def create_course_word_document(tema: str, sahifa: int, uslub: str, text: str,
         for _ in range(2): doc.add_paragraph() 
         
         doc.add_page_break() 
-        
 
-
-        # --------------------------------------------------------- 
-        # 2. MUNDARIJA
-        
-        if kurs_guruh: 
-            p_g = doc.add_paragraph(f"{kurs_guruh}") 
-            p_g.paragraph_format.left_indent = indent 
-
-        label = "Ilmiy rahbar: "
-        p_t = doc.add_paragraph(f"{label} __________________") 
-        p_t.paragraph_format.left_indent = indent 
-
-        for _ in range(2): doc.add_paragraph() 
-        for _ in range(2): doc.add_paragraph() 
-        
-        doc.add_page_break() 
-        
         # --------------------------------------------------------- 
         # 2. MUNDARIJA
         # --------------------------------------------------------- 

@@ -7,7 +7,7 @@ LANGUAGE: {language}
 TALABLAR:
 1. Sarlavha "MUNDARIJA" deb nomlansin.
 2. Tuzilishi quyidagicha bo'lishi SHART:
-   - KIRISH (Mavzuning dolzarbligi, o'rganilish darajasi, obyekti, predmeti, maqsadi, vazifalari, metodologik asoslari).
+   - KIRISH (Mavzuning dolzarbligi, o'rganilish darajasi, obyekti, predmeti, maqsadi, vazifalari, metodologik asoslari,).
    - I BOB: Nazariy qism — mavzuning ilmiy-nazariy asoslari va tarixiy tahlili (2-3 fasl).
    - II BOB: Amaliy qism — mavzuning amaliy jihatlari, zamonaviy holat tahlili va takomillashtirish yo'llari (2-3 fasl).
    - XULOSA VA TAKLIFLAR.
