@@ -214,7 +214,7 @@ async def ask_referat_tariff(callback: CallbackQuery, state: FSMContext):
         "🔥 <b>PRO</b> (14 900 so'm) - Yuqori sifatli, chuqur tahliliy referat."
     )
     if has_promo:
-         msg_text += "\n\n🎁 <i>Sizda 70% lik chegirma faollashtirilgan!</i>"
+         msg_text += "\n\n🎁 <i>Sizda 50% lik chegirma faollashtirilgan!</i>"
 
     await callback.message.edit_text(
         msg_text,
@@ -233,13 +233,13 @@ async def process_referat_promo_code(message: Message, state: FSMContext):
     code = message.text.strip().upper()
     user_id = message.from_user.id
     
-    if code == "PROMO70":
-        if await has_used_promo(user_id, "PROMO70"):
+    if code == "PROMO50":
+        if await has_used_promo(user_id, "PROMO50"):
             await message.answer("❌ Siz bu promo-koddan allaqachon foydalangansiz.")
             await show_confirmation(message, state)
         else:
-            await state.update_data(has_active_promo=True, promo_code="PROMO70")
-            await message.answer("✅ Promo-kod qabul qilindi! Sizga 70% chegirma taqdim etildi.")
+            await state.update_data(has_active_promo=True, promo_code="PROMO50")
+            await message.answer("✅ Promo-kod qabul qilindi! Sizga 50% chegirma taqdim etildi.")
             
             # Go directly back to tariff selection
             # Because show_confirmation expects we just reviewed data, but here we just want to select tariff again.
@@ -250,7 +250,7 @@ async def process_referat_promo_code(message: Message, state: FSMContext):
                 "<b>Ta'rifni tanlang:</b>\n\n"
                 "🔹 <b>Oddiy</b> (8 000 so'm) - Standart sifatdagi referat yoki mustaqil ish.\n"
                 "🔥 <b>PRO</b> (14 900 so'm) - Yuqori sifatli, chuqur tahliliy referat.\n\n"
-                "🎁 <i>Sizda 70% lik chegirma faollashtirilgan!</i>"
+                "🎁 <i>Sizda 50% lik chegirma faollashtirilgan!</i>"
             )
             await message.answer(msg_text, reply_markup=get_referat_tariff_kb(has_promo), parse_mode="HTML")
             await state.set_state(ReferatState.tariff_selection)
@@ -271,7 +271,7 @@ async def start_plan_generation(callback: CallbackQuery, state: FSMContext, bot:
     
     data = await state.get_data()
     has_promo = data.get('has_active_promo', False)
-    price = int(base_price * 0.3) if has_promo else base_price
+    price = int(base_price * 0.5) if has_promo else base_price
     
     await state.update_data(tariff_price=price, is_pro=is_pro)
     

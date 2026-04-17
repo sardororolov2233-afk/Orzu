@@ -499,7 +499,7 @@ async def ask_course_tariff(callback: CallbackQuery, state: FSMContext):
         "• 📊 Chuqurroq tahlil va ko'proq manbalar"
     )
     if has_promo:
-        msg_text += "\n\n🎁 <i>Sizda 70% lik chegirma faollashtirilgan!</i>"
+        msg_text += "\n\n🎁 <i>Sizda 50% lik chegirma faollashtirilgan!</i>"
         
     await callback.message.edit_text(
         msg_text,
@@ -518,13 +518,13 @@ async def process_course_promo_code(message: Message, state: FSMContext):
     code = message.text.strip().upper()
     user_id = message.from_user.id
     
-    if code == "PROMO70":
-        if await has_used_promo(user_id, "PROMO70"):
+    if code == "PROMO50":
+        if await has_used_promo(user_id, "PROMO50"):
             await message.answer("❌ Siz bu promo-koddan allaqachon foydalangansiz.")
             await show_course_confirmation(message, state)
         else:
-            await state.update_data(has_active_promo=True, promo_code="PROMO70")
-            await message.answer("✅ Promo-kod qabul qilindi! Sizga 70% chegirma taqdim etildi.")
+            await state.update_data(has_active_promo=True, promo_code="PROMO50")
+            await message.answer("✅ Promo-kod qabul qilindi! Sizga 50% chegirma taqdim etildi.")
             
             data = await state.get_data()
             has_promo = data.get('has_active_promo', False)
@@ -532,7 +532,7 @@ async def process_course_promo_code(message: Message, state: FSMContext):
                 "<b>Ta'rifni tanlang:</b>\n\n"
                 "🔹 <b>Oddiy</b> (15 000 so'm) - Standart sifatdagi kurs ishi.\n"
                 "🔥 <b>PRO</b> (29 900 so'm) - Yuqori sifatli, chuqur tahliliy va ilmiy akademik kurs ishi.\n\n"
-                "🎁 <i>Sizda 70% lik chegirma faollashtirilgan!</i>"
+                "🎁 <i>Sizda 50% lik chegirma faollashtirilgan!</i>"
             )
             await message.answer(msg_text, reply_markup=get_course_tariff_kb(has_promo), parse_mode="HTML")
             await state.set_state(CourseWorkState.tariff_selection)
@@ -554,7 +554,7 @@ async def start_course_generation(callback: CallbackQuery, state: FSMContext):
     
     data = await state.get_data()
     has_promo = data.get('has_active_promo', False)
-    price = int(base_price * 0.3) if has_promo else base_price
+    price = int(base_price * 0.5) if has_promo else base_price
     
     await state.update_data(tariff_price=price, is_pro=is_pro)
     

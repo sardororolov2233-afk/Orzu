@@ -193,8 +193,8 @@ referat_edit_selection_kb = InlineKeyboardMarkup(
 
 # Referat Tariflarini tanlash
 def get_referat_tariff_kb(has_promo: bool = False):
-    oddiy_price = 2400 if has_promo else 8000
-    pro_price = 4470 if has_promo else 14900
+    oddiy_price = 4000 if has_promo else 8000
+    pro_price = 7450 if has_promo else 14900
     kb = [
         [InlineKeyboardButton(text=f"Oddiy ({oddiy_price:,} so'm)".replace(',', ' '), callback_data="ref_tariff_oddiy")],
         [InlineKeyboardButton(text=f"PRO ({pro_price:,} so'm) 🔥".replace(',', ' '), callback_data="ref_tariff_pro")],
@@ -242,8 +242,8 @@ course_edit_selection_kb = InlineKeyboardMarkup(
 
 # Kurs ishi Tariflarini tanlash
 def get_course_tariff_kb(has_promo: bool = False):
-    oddiy_price = 4500 if has_promo else 15000
-    pro_price = 8970 if has_promo else 29900
+    oddiy_price = 7500 if has_promo else 15000
+    pro_price = 14950 if has_promo else 29900
     kb = [
         [InlineKeyboardButton(text=f"Oddiy ({oddiy_price:,} so'm)".replace(',', ' '), callback_data="course_tariff_oddiy")],
         [InlineKeyboardButton(text=f"PRO ({pro_price:,} so'm) 🔥".replace(',', ' '), callback_data="course_tariff_pro")],

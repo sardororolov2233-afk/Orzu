@@ -116,11 +116,18 @@ async def approve_pending_payment(payment_id: str) -> Optional[Dict[str, Any]]:
         if payment["status"] != "pending":
             return None
 
+        # Calculate final amount with 50% bonus for 20000+ topups
+        actual_amount = payment["amount"]
+        final_amount = actual_amount
+        if actual_amount >= 20000:
+            final_amount += actual_amount * 0.5
+
         # Update balance
-        success = await update_user_balance(payment["user_id"], payment["amount"])
+        success = await update_user_balance(payment["user_id"], final_amount)
         if success:
             # Update payment status
             await asyncio.to_thread(supabase.table("payments").update({"status": "completed"}).eq("id", payment_id).execute)
+            payment["amount"] = final_amount
             return payment
         return None
     except Exception as e:
