@@ -34,10 +34,16 @@ async def presentation_start(message: Message, state: FSMContext):
         
         # Create inline keyboard with WebApp button
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(
-                text="🚀 Yordamchi AI App", 
-                web_app=WebAppInfo(url=WEBAPP_URL)
-            )]
+            [
+                InlineKeyboardButton(
+                    text="Standart", 
+                    web_app=WebAppInfo(url=f"{WEBAPP_URL}?tab=standard")
+                ),
+                InlineKeyboardButton(
+                    text="Yordamchi PRO ⭐", 
+                    web_app=WebAppInfo(url=f"{WEBAPP_URL}?tab=pro")
+                )
+            ]
         ])
         
         await message.answer(
