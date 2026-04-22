@@ -5,7 +5,7 @@ main_menu = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="📄 Referat yaratish"), KeyboardButton(text="📊 Taqdimot yaratish")],
         [KeyboardButton(text="Kurs ishi"), KeyboardButton(text="💰 Tayyor ishlar")],
-        [KeyboardButton(text="💳 Balans"), KeyboardButton(text="🆘 Yordam")],
+        [KeyboardButton(text="💳 Hisobni to'ldirish"), KeyboardButton(text="🆘 Yordam")],
         [KeyboardButton(text="💵 Narxlar"), KeyboardButton(text="📝 Buyurtma asosida yaratish")],
         [KeyboardButton(text="🎓 Bitiruv Malakaviy ishi")],
     ],

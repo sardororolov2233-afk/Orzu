@@ -10,7 +10,7 @@ MAIN_MENU_COMMANDS = [
     "📊 Taqdimot yaratish", 
     "Kurs ishi", 
     "💰 Tayyor ishlar", 
-    "💳 Balans", 
+    "💳 Hisobni to'ldirish", 
     "🆘 Yordam",
     "/start",
     "/menu",

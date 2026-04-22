@@ -18,7 +18,7 @@ class PaymentState(StatesGroup):
     amount_selection = State()
     waiting_receipt = State()
 
-@router.message(F.text == "💳 Balans")
+@router.message(F.text == "💳 Hisobni to'ldirish")
 async def balance_handler(message: Message):
     balance = await get_user_balance(message.from_user.id)
     balance_int = int(balance)
