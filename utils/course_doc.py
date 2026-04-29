@@ -33,6 +33,8 @@ def create_course_word_document(tema: str, sahifa: int, uslub: str, text: str,
         font.size = Pt(14) 
         font.bold = False
         style.paragraph_format.line_spacing_rule = WD_LINE_SPACING.ONE_POINT_FIVE 
+        style.paragraph_format.space_after = Pt(0)
+        style.paragraph_format.space_before = Pt(0)
 
         # --------------------------------------------------------- 
         # HELPER: Page Numbers

@@ -147,7 +147,26 @@ async def generate_full_course_work(topic: str, plan: str, lang: str, is_pro: bo
     await update_status("Kirish qismi yozilmoqda...")
     
     p_intro = load_raw_prompt("course/21_0_full_intro.txt", topic=topic, plan=plan, language=lang)
-    p_intro += """
+    if lang in ["Русский", "Rus"]:
+        p_intro += """
+
+ФОРМАТ ТЕКСТА И АБЗАЦЫ (ВАЖНЫЕ ПРАВИЛА):
+- Не разбивайте текст на мелкие кусочки, не начинайте каждое предложение с нового абзаца!
+- Начинайте абзац в начале раздела и пишите сплошным текстом крупными блоками, не разрывая мысли.
+- Начинать с нового абзаца разрешается только после вставки рисунка или таблицы.
+- НИКАКИХ СНОСОК (FOOTNOTE) И ИСТОЧНИКОВ ЛИТЕРАТУРЫ ВНУТРИ ТЕКСТА. Никаких [1], (Иванов, 2021) и т.д.! Вся литература пишется только в самом конце работы.
+"""
+    elif lang in ["English", "Ingliz"]:
+        p_intro += """
+
+TEXT FORMAT AND PARAGRAPHS (IMPORTANT RULES):
+- Do not split the text into tiny chunks, do not start every new sentence from a new paragraph!
+- Start a paragraph at the beginning of the section and write the text in large blocks continuously without breaking thoughts.
+- Starting a new paragraph is only allowed after inserting an image or table.
+- ABSOLUTELY NO FOOTNOTES OR REFERENCES IN THE TEXT. Do not write [1], (Smith, 2021), etc.! All literature is placed only at the very end of the work.
+"""
+    else:
+        p_intro += """
 
 MATN FORMATI VA ABZASLAR (MUHIM QOIDALAR):
 - Matnni mayda bo'laklarga ajratmang, har bir gapni yangi abzasdan boshlamang! Qator tashlab ketma-ket abzatslar yozish TAQIQLANADI.
@@ -207,7 +226,64 @@ MATN FORMATI VA ABZASLAR (MUHIM QOIDALAR):
                     language=lang)
             
             # Qat'iy ko'rsatma qo'shish
-            p_fasl += f""" 
+            if lang in ["Русский", "Rus"]:
+                p_fasl += f""" 
+
+СТРОГАЯ СИСТЕМНАЯ ИНСТРУКЦИЯ:
+
+Ваша единственная задача: написать только часть "{section_title}" на тему "{topic}".
+
+ЗАПРЕЩЕНО:
+❌ Переходить к другим главам.
+❌ Лить воду общими фразами.
+❌ Начинать текст с "В данном разделе...".
+❌ Повторять заголовок внутри текста.
+❌ Писать выводы по главе (если это не раздел 2.3 или 1.3).
+
+ОБЯЗАТЕЛЬНО:
+✅ Текст должен на 100% соответствовать плану "{plan}".
+✅ Каждая мысль должна быть научно обоснована.
+✅ Основной текст ОБЯЗАТЕЛЬНО должен быть написан на языке: {lang}. НИКАКИХ УЗБЕКСКИХ СЛОВ ИЛИ ЛАТИНСКИХ БУКВ!
+
+КОНТРОЛЬ ОБЪЕМА И КАЧЕСТВА:
+1. Минимальный объем: не менее 2500 слов (6 полных страниц). Проведите глубокий анализ.
+
+ФОРМАТ ТЕКСТА, АБЗАЦЫ И ЦИТАТЫ (СТРОГИЕ ПРАВИЛА):
+- Не разбивайте текст на мелкие кусочки, не начинайте каждое предложение с нового абзаца!
+- Начинайте абзац в начале раздела и пишите сплошным текстом крупными блоками, не разрывая мысли.
+- Начинать с нового абзаца разрешается только после вставки таблицы. В остальных случаях пишите сплошным научным текстом крупными блоками.
+- НИКАКИХ СНОСОК (FOOTNOTE) И ИСТОЧНИКОВ ЛИТЕРАТУРЫ ВНУТРИ ТЕКСТА. Никаких [1], (Иванов, 2021) и т.д.! Вся литература пишется только в самом конце работы.
+"""
+            elif lang in ["English", "Ingliz"]:
+                p_fasl += f""" 
+
+STRICT SYSTEM INSTRUCTION:
+
+Your only task is to write strictly the "{section_title}" section for the topic "{topic}".
+
+FORBIDDEN:
+❌ Jumping to other chapters.
+❌ Using generic filler text.
+❌ Starting the text with "In this section...".
+❌ Repeating the title inside the text.
+❌ Writing chapter conclusions (unless it's section 2.3 or 1.3).
+
+MANDATORY:
+✅ The text must 100% match the plan "{plan}".
+✅ Every point must be scientifically justified.
+✅ The main text MUST be strictly written in the language: {lang}. NO UZBEK WORDS!
+
+VOLUME AND QUALITY CONTROL:
+1. Minimum volume: At least 2500 words (6 full pages). Provide deep analysis.
+
+TEXT FORMAT, PARAGRAPHS AND CITATIONS (STRICT RULES):
+- Do not split the text into tiny chunks, do not start every new sentence from a new paragraph!
+- Start a paragraph at the beginning of the section and write the text in large blocks continuously without breaking thoughts.
+- Starting a new paragraph is only allowed after inserting a table. Otherwise, continue writing in large blocks.
+- ABSOLUTELY NO FOOTNOTES OR REFERENCES IN THE TEXT. Do not write [1], (Smith, 2021), etc.! All literature is placed only at the very end of the work.
+"""
+            else:
+                p_fasl += f""" 
 
 QAT'IY TIZIM BUYRUG'I (STRICT SYSTEM INSTRUCTION):
 
@@ -224,9 +300,6 @@ TALAB (MANDATORY):
 ✅ Matn "{plan}" rejasiga 100% mos bo'lishi shart.
 ✅ Har bir fikr ilmiy asoslangan bo'lishi kerak.
 ✅ Asosiy matn majburiy ravishda quyidagi tilda yozilishi shart: {lang}
-"""
-            
-            p_fasl += f"""
 
 HAJM VA SIFAT NAZORATI:
 1. Minimal hajm: Kamida 2500 so'z (6 to'liq sahifa) bo'lishi SHART. Chuqur tahlil qiling.
@@ -260,7 +333,22 @@ MATN FORMATI, ABZASLAR VA IQTIBOSLAR (QAT'IY QOIDALAR):
     conclusion_prompt = load_raw_prompt("course/23_1_general_conclusion.txt", 
         topic=topic, plan=plan, language=lang, previous_context=conclusion_context)
     
-    conclusion_prompt += """
+    if lang in ["Русский", "Rus"]:
+        conclusion_prompt += """
+
+ФОРМАТ ТЕКСТА И АБЗАЦЫ (ВАЖНЫЕ ПРАВИЛА):
+- Не разбивайте текст на мелкие кусочки, не начинайте каждую мысль с новой строки!
+- Пишите всё заключение сплошным, непрерывным текстом. Никаких сносок или источников литературы внутри текста!
+"""
+    elif lang in ["English", "Ingliz"]:
+        conclusion_prompt += """
+
+TEXT FORMAT AND PARAGRAPHS (IMPORTANT RULES):
+- Do not split the text into tiny chunks, do not start every thought from a new line!
+- Write the entire conclusion as a solid, continuous text. Absolutely no footnotes or literature references in the text!
+"""
+    else:
+        conclusion_prompt += """
 
 MATN FORMATI VA ABZASLAR (MUHIM QOIDALAR):
 - Matnni mayda bo'laklarga ajratib, har bir fikrni yangi qatordan boshlamang!

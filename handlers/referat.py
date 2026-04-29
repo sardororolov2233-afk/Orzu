@@ -487,11 +487,24 @@ async def generate_full_content(callback: CallbackQuery, state: FSMContext):
             elif lang in ["English", "Ingliz"]: sub_title += " section"
             else: sub_title += "-fasl"
             
-            instruction = (
-                f"Mavzuni tahliliy yozing. Kamida 500-600 so'z bo'lsin.\n"
-                f"Faqat {chapter_title}, {sub_title} haqida yozing.\n"
-                f"Majburiy matn tili: {lang}"
-            )
+            if lang in ["Русский", "Rus"]:
+                instruction = (
+                    f"Напишите аналитический текст. Минимум 500-600 слов.\n"
+                    f"Пишите только про {chapter_title}, {sub_title}.\n"
+                    f"ОБЯЗАТЕЛЬНЫЙ ЯЗЫК ТЕКСТА: {lang}. НИКАКИХ УЗБЕКСКИХ СЛОВ ИЛИ ЛАТИНСКИХ БУКВ!"
+                )
+            elif lang in ["English", "Ingliz"]:
+                instruction = (
+                    f"Write analytically. At least 500-600 words.\n"
+                    f"Write ONLY about {chapter_title}, {sub_title}.\n"
+                    f"MANDATORY LANGUAGE: {lang}. NO UZBEK WORDS!"
+                )
+            else:
+                instruction = (
+                    f"Mavzuni tahliliy yozing. Kamida 500-600 so'z bo'lsin.\n"
+                    f"Faqat {chapter_title}, {sub_title} haqida yozing.\n"
+                    f"Majburiy matn tili: {lang}"
+                )
             
             # Har bir fasl uchun alohida AI so'rovi
             content = await generate_section(sub_title, instruction)
@@ -506,25 +519,35 @@ async def generate_full_content(callback: CallbackQuery, state: FSMContext):
     # 3-BOSQICH: KIRISH va XULOSA (Alohida)
     # ---------------------------------------------------------
     
+    if lang in ["Русский", "Rus"]:
+        intro_instr = f"Напишите сильное, полное введение. Актуальность, цели, задачи. Без заключения. Без подразделов. СТРОГО НА ЯЗЫКЕ: {lang.upper()}. НИКАКИХ УЗБЕКСКИХ СЛОВ ИЛИ ЛАТИНСКИХ БУКВ."
+        conc_instr = f"Напишите полное заключение. Обобщение результатов и предложения. Не повторяйте Введение. Без подразделов. СТРОГО НА ЯЗЫКЕ: {lang.upper()}. НИКАКИХ УЗБЕКСКИХ СЛОВ ИЛИ ЛАТИНСКИХ БУКВ."
+        refs_instr = f"Приведите список из 10-15 реальных источников в алфавитном порядке. Правильное форматирование для академического стиля. Без подразделов. СТРОГО НА ЯЗЫКЕ: {lang.upper()}."
+    elif lang in ["English", "Ingliz"]:
+        intro_instr = f"Write a strong, comprehensive introduction. Relevance, goals, tasks. No conclusion. No subsections. MUST BE WRITTEN IN {lang.upper()} LANGUAGE. NO UZBEK WORDS."
+        conc_instr = f"Write a comprehensive conclusion. Summarizing findings and suggestions. Do not repeat Intro. No subsections. MUST BE WRITTEN IN {lang.upper()} LANGUAGE. NO UZBEK WORDS."
+        refs_instr = f"List 10-15 real sources in alphabetical order. Proper formatting for {lang.upper()} academic style. No subsections. Written in {lang.upper()} strictly. NO UZBEK WORDS."
+    else:
+        intro_instr = f"Write a strong, comprehensive introduction. Relevance, goals, tasks. No conclusion. No subsections. MUST BE WRITTEN IN {lang.upper()} LANGUAGE."
+        conc_instr = f"Write a comprehensive conclusion. Summarizing findings and suggestions. Do not repeat Intro. No subsections. MUST BE WRITTEN IN {lang.upper()} LANGUAGE."
+        refs_instr = f"List 10-15 real sources in alphabetical order. Proper formatting for {lang.upper()} academic style. No subsections. Written in {lang.upper()} strictly."
+
     # KIRISH
-    intro = await generate_section(intro_hdr, 
-        f"Write a strong, comprehensive introduction. Relevance, goals, tasks. No conclusion. No subsections. MUST BE WRITTEN IN {lang.upper()} LANGUAGE.")
+    intro = await generate_section(intro_hdr, intro_instr)
     full_text.insert(0, format_section_safe(intro_hdr, intro))
     
     await smart_delay()
     
     # XULOSA
     # Sarlavhani faqat AI matni bilan birga, bir marta qo'shing
-    conc = await generate_section(conc_hdr, 
-        f"Write a comprehensive conclusion. Summarizing findings and suggestions. Do not repeat Intro. No subsections. MUST BE WRITTEN IN {lang.upper()} LANGUAGE.")
+    conc = await generate_section(conc_hdr, conc_instr)
     full_text.append(format_section_safe(conc_hdr, conc))
     
     await smart_delay()
     
     # ADABIYOTLAR
     # Sarlavhani faqat AI matni bilan birga, bir marta qo'shing
-    refs = await generate_section(refs_hdr, 
-        f"List 10-15 real sources in alphabetical order. Proper formatting for {lang.upper()} academic style. No subsections. Written in {lang.upper()} strictly.")
+    refs = await generate_section(refs_hdr, refs_instr)
     full_text.append(format_section_safe(refs_hdr, refs))
     
     await smart_delay()
