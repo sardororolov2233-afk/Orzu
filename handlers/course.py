@@ -95,7 +95,7 @@ async def generate_full_course_work(topic: str, plan: str, lang: str, is_pro: bo
     """
     Kurs ishini to'liq generatsiya qilish.
     
-    PRO tarif:  DeepSeek R1T Chimera + Kontekst Chain + Polishing
+    PRO tarif:  DeepSeek R1-0528 + Kontekst Chain + Polishing
     Oddiy tarif: Groq Llama 3.3 (hozirgi kabi)
     """
     full_text = []
@@ -581,7 +581,7 @@ async def ask_course_tariff(callback: CallbackQuery, state: FSMContext):
         "🔹 <b>Oddiy</b> (15 000 so'm) - Standart sifatdagi kurs ishi.\n"
         "🔥 <b>PRO</b> (29 900 so'm) - Yuqori sifatli, chuqur tahliliy va ilmiy akademik kurs ishi.\n\n"
         "<i>PRO tarif afzalliklari:</i>\n"
-        "• 🧠 DeepSeek R1T Chimera — kuchli AI model\n"
+        "• 🧠 DeepSeek R1-0528 — eng kuchli reasoning AI model\n"
         "• 🔗 Fasllar o'rtasida kontekst aloqasi\n"
         "• ✨ Professional tahrirlash (polishing)\n"
         "• 📊 Chuqurroq tahlil va ko'proq manbalar"
@@ -654,7 +654,7 @@ async def start_course_generation(callback: CallbackQuery, state: FSMContext):
 
     await callback.message.delete()
     
-    tarif_label = "🔥 PRO (DeepSeek R1T Chimera)" if is_pro else "🔹 Oddiy (Groq Llama)"
+    tarif_label = "🔥 PRO (DeepSeek R1-0528)" if is_pro else "🔹 Oddiy (Groq Llama)"
     processing_msg = await callback.message.answer(
         f"⏳ AI Kurs ishingizni yozishni boshladi...\n"
         f"Tarif: {tarif_label}\n"
@@ -771,7 +771,7 @@ async def approve_course_plan(callback: CallbackQuery, state: FSMContext):
         doc = FSInputFile(word_file)
         await callback.message.answer_document(document=doc, caption=f"🎓 {data['tema']}")
         
-        quality_msg = "🔥 PRO sifat — DeepSeek R1T Chimera modeli bilan yaratildi" if is_pro else "✅ Standart sifat"
+        quality_msg = "🔥 PRO sifat — DeepSeek R1-0528 modeli bilan yaratildi" if is_pro else "✅ Standart sifat"
         await callback.message.answer(
             f"✅ Kurs ishi muvaffaqiyatli yakunlandi!\n{quality_msg}\n\n"
             f"Tanlovingiz uchun minnadormiz. Agar ushbu ishni yanada professional darajada qabul qilmoqchi bo'lsangiz mutahasislarimizga murojat qiling: @sardorbekuralov", 

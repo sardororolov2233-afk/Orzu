@@ -1,4 +1,4 @@
-"""OpenRouter API va DeepSeek R1T Chimera modelini test qilish"""
+"""OpenRouter API va DeepSeek R1-0528 modelini test qilish"""
 import asyncio
 import os
 import sys
@@ -25,7 +25,7 @@ async def test_openrouter():
         api_key=api_key
     )
     
-    model = "tngtech/deepseek-r1t2-chimera"
+    model = "deepseek/deepseek-r1-0528"
     print(f"\n🧪 Model: {model}")
     print("📡 So'rov yuborilmoqda...\n")
     

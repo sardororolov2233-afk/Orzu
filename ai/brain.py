@@ -22,7 +22,7 @@ else:
     groq_client = AsyncGroq(api_key=GROQ_API_KEY)
 
 # ═══════════════════════════════════════════════════════
-# OPENROUTER CLIENT (PRO tarif uchun — DeepSeek R1T Chimera)
+# OPENROUTER CLIENT (PRO tarif uchun — DeepSeek R1-0528)
 # ═══════════════════════════════════════════════════════
 if not OPENROUTER_API_KEY:
     logger.warning("OPENROUTER_API_KEY topilmadi! PRO tarif ishlamaydi.")
@@ -38,7 +38,7 @@ else:
 # ═══════════════════════════════════════════════════════
 MODEL_SMART = "llama-3.3-70b-versatile"           # Oddiy tarif (Groq)
 MODEL_RESERVE = "llama-3.1-70b-versatile"          # Zaxira model (Groq)
-MODEL_PRO = "tngtech/deepseek-r1t2-chimera"        # PRO tarif (OpenRouter)
+MODEL_PRO = "deepseek/deepseek-r1-0528"              # PRO tarif (OpenRouter)
 
 def load_prompt(filename, **kwargs):
     """
@@ -201,12 +201,12 @@ async def ask_ai(prompt_text, model=MODEL_SMART, retries=3, temperature=0.5, max
 
 
 # ═══════════════════════════════════════════════════════
-# PRO TARIF — OpenRouter API (ask_ai_pro) — DeepSeek R1T Chimera
+# PRO TARIF — OpenRouter API (ask_ai_pro) — DeepSeek R1-0528
 # ═══════════════════════════════════════════════════════
 async def ask_ai_pro(prompt_text, model=MODEL_PRO, retries=3, temperature=0.3, max_tokens=16384):
     """
     OpenRouter API ga so'rov yuborish (PRO tarif uchun).
-    DeepSeek R1T Chimera — reasoning + token efficiency.
+    DeepSeek R1-0528 — advanced reasoning model.
     System/User rollarini ajratib yuboradi.
     """
     if not openrouter_client:
@@ -237,7 +237,7 @@ async def ask_ai_pro(prompt_text, model=MODEL_PRO, retries=3, temperature=0.3, m
             
             content = response.choices[0].message.content
             
-            # DeepSeek R1T Chimera <think>...</think> taglarini tozalash
+            # DeepSeek R1-0528 <think>...</think> taglarini tozalash
             if content and "<think>" in content:
                 import re
                 content = re.sub(r'<think>.*?</think>', '', content, flags=re.DOTALL).strip()
