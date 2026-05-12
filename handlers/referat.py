@@ -99,17 +99,9 @@ async def process_ish_turi(callback: CallbackQuery, state: FSMContext):
     
     await state.update_data(ish_turi=ish_turi)
     
-    # Auto-fill check
-    user_data = await get_user_referat_data(callback.from_user.id)
-    if user_data:
-        # Fill data from DB
-        await state.update_data(**user_data)
-        # Go to confirmation
-        await show_confirmation(callback.message, state)
-    else:
-        # Start data collection
-        await callback.message.edit_text("🏛 O'qish joyingiz (Universitet) nomini yozing:")
-        await state.set_state(ReferatState.universitet)
+    # Har safar ma'lumotlarni qaytadan so'rash
+    await callback.message.edit_text("🏛 O'qish joyingiz (Universitet) nomini yozing:")
+    await state.set_state(ReferatState.universitet)
 
 # ---------------------------------------------------------
 # 2. Data Collection (if not auto-filled)
@@ -159,10 +151,6 @@ async def process_lang(callback: CallbackQuery, state: FSMContext):
     }
     lang = lang_map.get(callback.data, "O'zbek")
     await state.update_data(til=lang)
-    
-    # Save to DB for future auto-fill
-    data = await state.get_data()
-    await save_user_referat_data(callback.from_user.id, data)
     
     await show_confirmation(callback.message, state)
 

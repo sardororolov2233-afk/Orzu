@@ -484,35 +484,9 @@ async def start_course_menu(message: Message, state: FSMContext):
 async def get_tema(message: Message, state: FSMContext):
     await state.update_data(tema=message.text)
     
-    user_data = await get_user_profile(message.from_user.id)
-    if user_data:
-        kurs = user_data.get('kurs')
-        guruh = user_data.get('guruh')
-        
-        if not kurs and not guruh:
-            kg = user_data.get('kurs_guruh', '')
-            if kg:
-                parts = kg.split()
-                if len(parts) >= 1:
-                    kurs = parts[0]
-                if len(parts) >= 2:
-                    guruh = " ".join(parts[1:])
-        
-        await state.update_data(
-            universitet=user_data.get('universitet'),
-            fakultet=user_data.get('fakultet'),
-            muallif=user_data.get('muallif'),
-            kurs=kurs,
-            guruh=guruh,
-            uslub=user_data.get('uslub'),
-            sahifa=user_data.get('sahifa'),
-            til=user_data.get('til')
-        )
-        
-        await show_course_confirmation(message, state)
-    else:
-        await message.answer("🔸 2️⃣ Sahifalar sonini kiriting (raqamda, masalan: 25):")
-        await state.set_state(CourseWorkState.sahifa)
+    # Har safar ma'lumotlarni qaytadan so'rash
+    await message.answer("🔸 2️⃣ Sahifalar sonini kiriting (raqamda, masalan: 25):")
+    await state.set_state(CourseWorkState.sahifa)
 
 @router.message(CourseWorkState.sahifa, ~F.text.in_(MAIN_MENU_COMMANDS))
 async def get_sahifa(message: Message, state: FSMContext):
@@ -564,10 +538,6 @@ async def get_til(callback: CallbackQuery, state: FSMContext):
     lang_map = {"lang_uz": "O'zbek", "lang_en": "Ingliz", "lang_ru": "Rus", "lang_fr": "Fransuz"}
     await state.update_data(til=lang_map.get(callback.data, "O'zbek"))
     await callback.message.delete()
-    
-    data = await state.get_data()
-    data['kurs_guruh'] = f"{data.get('kurs', '')} {data.get('guruh', '')}".strip()
-    await save_user_profile(callback.from_user.id, data)
     
     await show_course_confirmation(callback.message, state)
 
