@@ -249,6 +249,20 @@ async def get_admin_stats() -> Dict[str, Any]:
             topup_count = len(payments_resp.data)
             topup_sum = sum(int(row.get("amount") or 0) for row in payments_resp.data)
 
+        # Get total payments stats from payments table (status = completed)
+        total_payments_resp = await asyncio.to_thread(
+            supabase.table("payments")
+            .select("amount")
+            .eq("status", "completed")
+            .execute
+        )
+        
+        total_topup_count = 0
+        total_topup_sum = 0
+        if total_payments_resp.data:
+            total_topup_count = len(total_payments_resp.data)
+            total_topup_sum = sum(int(row.get("amount") or 0) for row in total_payments_resp.data)
+
         return {
             "total_users": total_users,
             "monthly_users": monthly_users,
@@ -256,7 +270,9 @@ async def get_admin_stats() -> Dict[str, Any]:
             "course_work_count": course_work_count,
             "presentation_count": presentation_count,
             "topup_count": topup_count,
-            "topup_sum": topup_sum
+            "topup_sum": topup_sum,
+            "total_topup_count": total_topup_count,
+            "total_topup_sum": total_topup_sum
         }
     except Exception as e:
         logger.error(f"Error getting admin stats: {e}")

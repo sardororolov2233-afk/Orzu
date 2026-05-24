@@ -84,7 +84,9 @@ async def admin_stats_callback(callback: CallbackQuery):
             f"🎓 Yozilgan Kurs ishlari: {stats.get('course_work_count', 0)} ta\n"
             f"📊 Yaratilgan Taqdimotlar: {stats.get('presentation_count', 0)} ta\n\n"
             f"💰 Shu oyda qilingan to'lovlar ({stats.get('topup_count', 0)} marta): "
-            f"{stats.get('topup_sum', 0)} so'm"
+            f"{stats.get('topup_sum', 0)} so'm\n"
+            f"💵 Jami to'lovlar ({stats.get('total_topup_count', 0)} marta): "
+            f"{stats.get('total_topup_sum', 0)} so'm"
         )
 
         await callback.message.answer(text, parse_mode="HTML", reply_markup=admin_menu_kb)
