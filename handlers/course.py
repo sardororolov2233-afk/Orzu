@@ -744,7 +744,7 @@ async def approve_course_plan(callback: CallbackQuery, state: FSMContext):
         quality_msg = "🔥 PRO sifat — DeepSeek R1-0528 modeli bilan yaratildi" if is_pro else "✅ Standart sifat"
         await callback.message.answer(
             f"✅ Kurs ishi muvaffaqiyatli yakunlandi!\n{quality_msg}\n\n"
-            f"Tanlovingiz uchun minnadormiz. Agar ushbu ishni yanada professional darajada qabul qilmoqchi bo'lsangiz mutahasislarimizga murojat qiling: @sardorbekuralov", 
+            f"Tanlovingiz uchun minnadormiz. Agar ushbu ishni yanada professional darajada qabul qilmoqchi bo'lsangiz mutahasislarimizga murojat qiling: @Gulroz_7711", 
             reply_markup=main_menu
         )
     else:

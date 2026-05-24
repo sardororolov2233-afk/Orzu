@@ -3,7 +3,7 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from keyboards import payment_keyboard, send_receipt_kb, get_admin_approval_kb, main_menu
-from config import ADMIN_ID
+from config import ADMIN_IDS
 from database import (
     update_user_balance, get_user_balance, log_user_action,
     create_pending_payment, approve_pending_payment,
@@ -63,8 +63,8 @@ async def payment_amount_selected(callback: CallbackQuery, state: FSMContext):
     
     text = (
         f"💳 To'lov summasi: {amount} so'm\n\n"
-        f"💳 Karta raqami: `9860 0201 4420 4623`\n"
-        f"👤 Karta egasi: O'ralov Sardor\n\n"
+        f"💳 Karta raqami: `5614 6845 0443 9587`\n"
+        f"👤 Karta egasi: Umida Q\n\n"
         f"⚠️ DIQQAT: Soxta chek yuborish BAN ga olib kelishi mumkin!\n"
         f"To'lov qilganingizdan so'ng, chekni yuborish tugmasini bosing."
     )
@@ -90,7 +90,7 @@ async def back_main_handler(callback: CallbackQuery):
 
 @router.message(PaymentState.waiting_receipt, F.photo)
 async def process_receipt(message: Message, state: FSMContext, bot: Bot):
-    if not ADMIN_ID:
+    if not ADMIN_IDS:
         await message.answer("❌ Tizimda xatolik: Admin sozlanmagan. Iltimos keyinroq urinib ko'ring.")
         await state.clear()
         return
@@ -129,24 +129,30 @@ async def process_receipt(message: Message, state: FSMContext, bot: Bot):
         f"🔑 Payment ID: {payment_id}"
     )
     
-    try:
-        await bot.send_photo(
-            chat_id=int(ADMIN_ID),
-            photo=receipt_file_id,
-            caption=caption,
-            reply_markup=get_admin_approval_kb(payment_id)
-        )
+    sent_to_any = False
+    for admin_id in ADMIN_IDS:
+        try:
+            await bot.send_photo(
+                chat_id=admin_id,
+                photo=receipt_file_id,
+                caption=caption,
+                reply_markup=get_admin_approval_kb(payment_id)
+            )
+            sent_to_any = True
+        except Exception as e:
+            logger.error(f"Admin {admin_id} ga yuborishda xatolik: {e}")
+            
+    if sent_to_any:
         await message.answer(
             "✅ Chek muvaffaqiyatli yuborildi!\n\n"
             "⏳ Admin tasdiqlaganidan so'ng hisobingiz to'ldiriladi.\n"
             "Iltimos, kuting...",
             reply_markup=main_menu
         )
-    except Exception as e:
-        logger.error(f"Admin ga yuborishda xatolik: {e}")
+    else:
         await message.answer(
             "❌ Chekni admin ga yuborishda xatolik yuz berdi.\n"
-            "Iltimos @sardorbekuralov bilan bog'laning."
+            "Iltimos @Gulroz_7711 bilan bog'laning."
         )
     
     await state.clear()

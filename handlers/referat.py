@@ -585,7 +585,7 @@ async def generate_full_content(callback: CallbackQuery, state: FSMContext):
         if sent_success:
             try:
                 quality_msg = "🔥 PRO sifat — DeepSeek R1-0528 modeli bilan yaratildi" if is_pro else "✅ Standart sifat"
-                await callback.message.answer(f"✅ Referat muvaffaqiyatli yakunlandi!\n{quality_msg}\n\nTanlovingiz uchun minnadormiz. Agar ushbu ishni yanada professional darajada qabul qilmoqchi bo'lsangiz mutahasislarimizga murojat qiling: @sardorbekuralov", reply_markup=main_menu)
+                await callback.message.answer(f"✅ Referat muvaffaqiyatli yakunlandi!\n{quality_msg}\n\nTanlovingiz uchun minnadormiz. Agar ushbu ishni yanada professional darajada qabul qilmoqchi bo'lsangiz mutahasislarimizga murojat qiling: @Gulroz_7711", reply_markup=main_menu)
             except:
                 pass # Ignore error on success message if doc is sent
         else:

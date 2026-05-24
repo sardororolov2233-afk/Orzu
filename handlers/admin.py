@@ -6,7 +6,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 
-from config import ADMIN_ID
+from config import ADMIN_IDS
 from database import get_admin_stats, get_pending_payments_count, get_all_user_ids
 from states import BroadcastState
 
@@ -35,8 +35,7 @@ broadcast_confirm_kb = InlineKeyboardMarkup(
 # ─── Yordamchi: admin tekshirish ─────────────────────────────────────────────
 
 def is_admin(user_id: int) -> bool:
-    admin_id = str(ADMIN_ID).strip() if ADMIN_ID else None
-    return str(user_id) == admin_id
+    return user_id in ADMIN_IDS
 
 
 # ─── /admin buyrug'i ─────────────────────────────────────────────────────────

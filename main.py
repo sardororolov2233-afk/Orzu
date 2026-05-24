@@ -147,7 +147,7 @@ async def main():
              await message.answer(
                 "💬 Yordam xizmati\n\n"
                 "Qo'shimcha savollar yoki muammolar yuzasidan administrator bilan bog'laning:\n"
-                "👨‍💻 @sardorbekuralov", 
+                "👨‍💻 @Gulroz_7711", 
                 reply_markup=main_menu
              )
 
@@ -174,7 +174,7 @@ async def main():
                 "📝 <b>Maxsus buyurtma asosida yaratish</b>\n\n"
                 "Sizda o'ziga xos talablar bormi? Yoki bot funksiyalari doirasidan tashqari maxsus murakkab ish kerakmi?\n"
                 "Batafsil ma'lumot va kelishuv uchun to'g'ridan-to'g'ri administratorimizga murojaat qiling:\n\n"
-                "👨‍💻 <b>Adminga murojaat qiling:</b> @sardorbekuralov",
+                "👨‍💻 <b>Adminga murojaat qiling:</b> @Gulroz_7711",
                 reply_markup=main_menu,
                 parse_mode="HTML"
              )
@@ -185,7 +185,7 @@ async def main():
                 "🎓 <b>Bitiruv Malakaviy Ishi (BMI)</b>\n\n"
                 "Bitiruv malakaviy ishlari va magistrlik dissertatsiyalarini tayyorlash bo'yicha maxsus rahbarlik va yordam ko'rsatamiz.\n"
                 "Talablaringizni muhokama qilish uchun biz bilan bog'laning:\n\n"
-                "👨‍💻 <b>Bizga murojat qiling:</b> @sardorbekuralov",
+                "👨‍💻 <b>Bizga murojat qiling:</b> @Gulroz_7711",
                 reply_markup=main_menu,
                 parse_mode="HTML"
              )

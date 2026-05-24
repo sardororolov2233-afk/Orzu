@@ -177,11 +177,13 @@ async def get_pending_payments_list() -> List[Dict[str, Any]]:
 
 async def log_user_action(user_id: int, action_type: str, amount: int = 0):
     """Log user action for statistics."""
+    from datetime import datetime
     try:
         data = {
             "user_id": user_id,
             "action_type": action_type,
-            "amount": amount
+            "amount": amount,
+            "created_at": datetime.utcnow().isoformat()
         }
         await asyncio.to_thread(supabase.table("statistics").insert(data).execute)
     except Exception as e:
@@ -215,28 +217,37 @@ async def get_admin_stats() -> Dict[str, Any]:
         m_users_resp = await asyncio.to_thread(supabase.table("users").select("*", count="exact").gte("created_at", first_day_of_month).execute)
         monthly_users = m_users_resp.count if m_users_resp.count is not None else 0
 
-        # Stats for this month
+        # Stats for this month (referats, course works, presentations)
         stats_data = await asyncio.to_thread(supabase.table("statistics").select("action_type, amount").gte("created_at", first_day_of_month).execute)
         
         referat_count = 0
         course_work_count = 0
         presentation_count = 0
-        topup_count = 0
-        topup_sum = 0
         
         if stats_data.data:
             for row in stats_data.data:
                 action = row.get("action_type")
-                amount = int(row.get("amount") or 0)
                 if action == "referat":
                     referat_count += 1
                 elif action == "course_work":
                     course_work_count += 1
                 elif action == "presentation":
                     presentation_count += 1
-                elif action == "topup":
-                    topup_count += 1
-                    topup_sum += amount
+
+        # Get payments stats from payments table directly (status = completed, created_at >= first_day_of_month)
+        payments_resp = await asyncio.to_thread(
+            supabase.table("payments")
+            .select("amount")
+            .eq("status", "completed")
+            .gte("created_at", first_day_of_month)
+            .execute
+        )
+        
+        topup_count = 0
+        topup_sum = 0
+        if payments_resp.data:
+            topup_count = len(payments_resp.data)
+            topup_sum = sum(int(row.get("amount") or 0) for row in payments_resp.data)
 
         return {
             "total_users": total_users,

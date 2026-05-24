@@ -17,15 +17,19 @@ if not BOT_TOKEN:
 # if not GROQ_API_KEY:
 #     raise ValueError('GROQ_API_KEY topilmadi!')
 
-# Admin ID (Agar .env da bo'lmasa, logga yozadi va ishlamasligi mumkin)
-ADMIN_ID = os.getenv('ADMIN_ID')
-if not ADMIN_ID:
+# Admin IDs
+ADMIN_IDS = []
+raw_admin_ids = os.getenv('ADMIN_ID', '')
+if raw_admin_ids:
+    for x in raw_admin_ids.split(','):
+        x = x.strip()
+        if x.isdigit():
+            ADMIN_IDS.append(int(x))
+
+# Backwards compatibility for single main ADMIN_ID
+ADMIN_ID = ADMIN_IDS[0] if ADMIN_IDS else None
+
+if not ADMIN_IDS:
     print("⚠️ DIQQAT: ADMIN_ID topilmadi! To'lovlarni tasdiqlash ishlamaydi.")
-else:
-    try:
-        ADMIN_ID = int(ADMIN_ID)
-    except ValueError:
-        print("⚠️ DIQQAT: ADMIN_ID raqam emas! To'lovlarni tasdiqlash ishlamaydi.")
-        ADMIN_ID = None
 
 print('Token va API Keylar yuklandi')
