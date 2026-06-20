@@ -14,7 +14,7 @@ from aiogram.types import Message
 from aiogram.filters import CommandStart, Command
 from aiogram.types import CallbackQuery
 from config import BOT_TOKEN, ADMIN_ID
-from keyboards import main_menu, subscribe_channel_kb
+from keyboards import main_menu, subscribe_channel_kb, design_link_kb
 
 # Import routers
 from handlers import referat, presentation, course, ready_works, payment, admin
@@ -187,6 +187,15 @@ async def main():
                 "Talablaringizni muhokama qilish uchun biz bilan bog'laning:\n\n"
                 "👨‍💻 <b>Bizga murojat qiling:</b> @Gulroz_7711",
                 reply_markup=main_menu,
+                parse_mode="HTML"
+             )
+
+        @dp.message(F.text == "🎨 Grafik dizayn tayyorlash")
+        async def design_handler(message: Message):
+             await message.answer(
+                "🎨 <b>Grafik dizayn tayyorlash</b>\n\n"
+                "Quyidagi tugma orqali grafik dizayn tayyorlash sahifasiga o'ting:",
+                reply_markup=design_link_kb,
                 parse_mode="HTML"
              )
 

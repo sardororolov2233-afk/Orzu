@@ -1,4 +1,8 @@
+import os
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types.web_app_info import WebAppInfo
+
+WEBAPP_URL = os.getenv("FRONTEND_URL", "https://orzu-two.vercel.app")
 
 # Asosiy menu (reply tugmalar)
 main_menu = ReplyKeyboardMarkup(
@@ -7,9 +11,16 @@ main_menu = ReplyKeyboardMarkup(
         [KeyboardButton(text="Kurs ishi"), KeyboardButton(text="💰 Tayyor ishlar")],
         [KeyboardButton(text="💳 Hisobni to'ldirish"), KeyboardButton(text="🆘 Yordam")],
         [KeyboardButton(text="💵 Narxlar"), KeyboardButton(text="📝 Buyurtma asosida yaratish")],
-        [KeyboardButton(text="🎓 Bitiruv Malakaviy ishi")],
+        [KeyboardButton(text="🎓 Bitiruv Malakaviy ishi"), KeyboardButton(text="🎨 Grafik dizayn tayyorlash")],
     ],
     resize_keyboard=True
+)
+
+# Grafik dizayn uchun havola tugmasi
+design_link_kb = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [InlineKeyboardButton(text="🎨 Dizayn yaratish", web_app=WebAppInfo(url=f"{WEBAPP_URL}/design"))]
+    ]
 )
 
 # Obuna tekshirish klaviaturasi
@@ -281,5 +292,5 @@ __all__ = [
     "course_confirm_inline_kb", "course_edit_selection_kb",
     "referat_type_kb", "referat_plan_approval_kb", "course_plan_approval_kb",
     "subscribe_channel_kb", "get_referat_tariff_kb", "get_course_tariff_kb",
-    "get_page_selection_kb"
+    "get_page_selection_kb", "design_link_kb"
 ]
