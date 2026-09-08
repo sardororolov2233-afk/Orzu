@@ -40,5 +40,5 @@ async def send_ready_works(message: Message, bot: Bot):
             logger.error(f"Fayl yuborishda xatolik: {file_name} - {e}")
             await message.answer(f"❌ {file_name} faylini yuborishda xatolik yuz berdi.")
     
-    await message.answer("✅ Barcha tayyor ishlar yuborildi.\n\nTanlovingiz uchun minnadormiz. Agar ushbu ishni yanada professional darajada qabul qilmoqchi bo'lsangiz mutahasislarimizga murojat qiling: @Gulroz_7711")
+    await message.answer("✅ Barcha tayyor ishlar yuborildi.\n\nTanlovingiz uchun minnadormiz. Agar ushbu ishni yanada professional darajada qabul qilmoqchi bo'lsangiz mutahasislarimizga murojat qiling: @sardorbekuralov")
 

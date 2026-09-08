@@ -288,3 +288,114 @@ async def get_all_user_ids() -> List[int]:
     except Exception as e:
         logger.error(f"Error getting all user ids: {e}")
         return []
+
+
+# ──────────────────────────────────────────────────────────────
+# Receipt Duplicate Tracking & Verification
+# ──────────────────────────────────────────────────────────────
+import sqlite3
+import re
+
+def _init_sqlite_receipts():
+    try:
+        conn = sqlite3.connect("bot_database.db")
+        cur = conn.cursor()
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS verified_receipts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                tx_id TEXT,
+                image_hash TEXT,
+                user_id INTEGER,
+                amount INTEGER,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_verified_receipts_tx ON verified_receipts(tx_id)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_verified_receipts_hash ON verified_receipts(image_hash)")
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        logger.error(f"Error initializing sqlite receipts: {e}")
+
+_init_sqlite_receipts()
+
+def _clean_tx_key(tx_id: str) -> str:
+    if not tx_id:
+        return ""
+    cleaned = re.sub(r'[^a-zA-Z0-9]', '', str(tx_id)).lower()
+    return cleaned
+
+async def is_receipt_duplicate(tx_id: Optional[str] = None, image_hash: Optional[str] = None) -> tuple[bool, str]:
+    """Check if receipt (by image hash or transaction ID) has already been used."""
+    clean_tx = _clean_tx_key(tx_id) if tx_id else ""
+    
+    # 1. Local SQLite check
+    try:
+        conn = sqlite3.connect("bot_database.db")
+        cur = conn.cursor()
+        if image_hash:
+            cur.execute("SELECT id FROM verified_receipts WHERE image_hash = ?", (image_hash,))
+            if cur.fetchone():
+                conn.close()
+                return True, "Ushbu to'lov cheki (rasm) allaqachon botda ishlatilgan!"
+        if clean_tx and len(clean_tx) >= 4:
+            cur.execute("SELECT id FROM verified_receipts WHERE tx_id = ?", (clean_tx,))
+            if cur.fetchone():
+                conn.close()
+                return True, f"Ushbu chek (Tranzaksiya ID: {tx_id}) allaqachon botda ishlatilgan!"
+        conn.close()
+    except Exception as e:
+        logger.error(f"SQLite duplicate check error: {e}")
+
+    # 2. Supabase statistics check
+    try:
+        if image_hash:
+            resp_hash = await asyncio.to_thread(
+                supabase.table("statistics")
+                .select("id")
+                .eq("action_type", f"receipt_hash_{image_hash}")
+                .execute
+            )
+            if resp_hash.data and len(resp_hash.data) > 0:
+                return True, "Ushbu to'lov cheki (rasm) oldin ro'yxatdan o'tgan!"
+
+        if clean_tx and len(clean_tx) >= 4:
+            resp_tx = await asyncio.to_thread(
+                supabase.table("statistics")
+                .select("id")
+                .eq("action_type", f"receipt_tx_{clean_tx}")
+                .execute
+            )
+            if resp_tx.data and len(resp_tx.data) > 0:
+                return True, f"Ushbu chek (Tranzaksiya ID: {tx_id}) oldin tasdiqlangan!"
+    except Exception as e:
+        logger.error(f"Supabase duplicate check error: {e}")
+
+    return False, ""
+
+async def record_verified_receipt(user_id: int, tx_id: Optional[str], image_hash: Optional[str], amount: int):
+    """Save verified receipt to SQLite and Supabase to prevent duplicate reuse."""
+    clean_tx = _clean_tx_key(tx_id) if tx_id else ""
+
+    # 1. Save to local SQLite
+    try:
+        conn = sqlite3.connect("bot_database.db")
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO verified_receipts (tx_id, image_hash, user_id, amount) VALUES (?, ?, ?, ?)",
+            (clean_tx if clean_tx else None, image_hash, user_id, amount)
+        )
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        logger.error(f"Error saving to SQLite verified_receipts: {e}")
+
+    # 2. Save to Supabase statistics
+    try:
+        if image_hash:
+            await log_user_action(user_id, f"receipt_hash_{image_hash}", amount=amount)
+        if clean_tx and len(clean_tx) >= 4:
+            await log_user_action(user_id, f"receipt_tx_{clean_tx}", amount=amount)
+    except Exception as e:
+        logger.error(f"Error logging verified receipt to Supabase: {e}")
+
