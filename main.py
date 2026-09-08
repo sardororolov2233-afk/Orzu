@@ -10,11 +10,11 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from aiogram import Bot, Dispatcher, F
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.types import Message
 from aiogram.filters import CommandStart, Command
-from aiogram.types import CallbackQuery
+from aiogram.fsm.context import FSMContext
+from aiogram.types import Message, CallbackQuery
 from config import BOT_TOKEN, ADMIN_ID
-from keyboards import main_menu, subscribe_channel_kb, design_link_kb
+from keyboards import main_menu, subscribe_channel_kb, design_link_kb, obyektivka_link_kb
 
 # Import routers
 from handlers import referat, presentation, course, ready_works, payment, admin
@@ -196,6 +196,16 @@ async def main():
                 "🎨 <b>Grafik dizayn tayyorlash</b>\n\n"
                 "Quyidagi tugma orqali grafik dizayn tayyorlash sahifasiga o'ting:",
                 reply_markup=design_link_kb,
+                parse_mode="HTML"
+             )
+
+        @dp.message(F.text.in_(["📋 Obyektivka tayyorlash", "Obyektivka tayyorlash"]))
+        async def obyektivka_handler(message: Message, state: FSMContext):
+             await state.clear()
+             await message.answer(
+                "📋 <b>Obyektivka (ma'lumotnoma) tayyorlash</b>\n\n"
+                "Rasmiy ma'lumotnoma (obyektivka)ni qulay tarzda shakllantirish uchun quyidagi havola orqali standart oynasiga o'ting:",
+                reply_markup=obyektivka_link_kb,
                 parse_mode="HTML"
              )
 
