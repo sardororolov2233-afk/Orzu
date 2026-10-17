@@ -1,6 +1,5 @@
 import logging
 
-REFERAT_PRICE = 8000
 import asyncio
 import random
 from aiogram import Router, F, Bot
@@ -10,20 +9,20 @@ from states import ReferatState
 from keyboards import (
     main_menu, referat_type_kb, referat_confirm_inline_kb, 
     referat_edit_selection_kb, language_selection_kb, 
-    referat_plan_approval_kb, get_referat_tariff_kb
+    referat_plan_approval_kb
 )
 from utils.referat_doc import create_referat_document
-from database import save_user_referat_data, get_user_referat_data, get_user_balance, update_user_balance, log_user_action, has_used_promo, mark_promo_used
-from ai.brain import ask_ai, ask_ai_pro, load_prompt, MODEL_SMART, MODEL_RESERVE
+from database import save_user_referat_data
+from handlers.access import check_access
+from billing import charged_generation
+from utils.common import MAIN_MENU_COMMANDS, show_plan
+from aiogram.filters import StateFilter
+from ai.brain import ask_ai, load_prompt
 
 router = Router()
 logger = logging.getLogger(__name__)
 
-async def ai_request(prompt_text: str, is_pro: bool = False, **kwargs):
-    if is_pro:
-        return await ask_ai_pro(prompt_text, **kwargs)
-    else:
-        return await ask_ai(prompt_text, **kwargs)
+ai_request = ask_ai
 
 # ---------------------------------------------------------
 # 1. Start Flow & Edit Interceptor
@@ -37,15 +36,17 @@ async def is_editing(message: Message, state: FSMContext) -> bool:
 @router.message(F.text == "📄 Referat yaratish")
 async def cmd_referat(message: Message, state: FSMContext):
     await state.clear()
+    if not await check_access(message, message.from_user.id, "referat"):
+        return
     await message.answer("Iltimos mavzuni to'g'ri va qisqartirishlarsiz kiriting")
     await state.set_state(ReferatState.tema)
 
 # Interceptor Handler for text inputs during edit mode
 # This MUST be registered before normal state handlers to catch the edit flow
-@router.message(is_editing, F.state.in_({
+@router.message(is_editing, F.text, ~F.text.in_(MAIN_MENU_COMMANDS), StateFilter(
     ReferatState.tema, ReferatState.universitet, ReferatState.fakultet, 
     ReferatState.muallif, ReferatState.kurs_guruh, ReferatState.sahifa
-}))
+))
 async def update_field_and_return(message: Message, state: FSMContext):
     # Update data based on state
     current_state = await state.get_state()
@@ -78,7 +79,7 @@ async def update_field_and_return(message: Message, state: FSMContext):
     # Return to confirmation
     await show_confirmation(message, state)
 
-@router.message(ReferatState.tema)
+@router.message(ReferatState.tema, F.text, ~F.text.in_(MAIN_MENU_COMMANDS))
 async def process_tema(message: Message, state: FSMContext):
     tema = message.text
     await state.update_data(tema=tema)
@@ -107,31 +108,31 @@ async def process_ish_turi(callback: CallbackQuery, state: FSMContext):
 # 2. Data Collection (if not auto-filled)
 # ---------------------------------------------------------
 
-@router.message(ReferatState.universitet)
+@router.message(ReferatState.universitet, F.text, ~F.text.in_(MAIN_MENU_COMMANDS))
 async def process_uni(message: Message, state: FSMContext):
     await state.update_data(universitet=message.text)
     await message.answer("🏢 Fakultetingiz nomini yozing:")
     await state.set_state(ReferatState.fakultet)
 
-@router.message(ReferatState.fakultet)
+@router.message(ReferatState.fakultet, F.text, ~F.text.in_(MAIN_MENU_COMMANDS))
 async def process_fakultet(message: Message, state: FSMContext):
     await state.update_data(fakultet=message.text)
     await message.answer("👤 Ish muallifi (Ism Familiya)ni yozing:")
     await state.set_state(ReferatState.muallif)
 
-@router.message(ReferatState.muallif)
+@router.message(ReferatState.muallif, F.text, ~F.text.in_(MAIN_MENU_COMMANDS))
 async def process_muallif(message: Message, state: FSMContext):
     await state.update_data(muallif=message.text)
     await message.answer("👨‍🎓 Kurs va guruhingizni yozing (masalan: 2-kurs, 204-guruh):")
     await state.set_state(ReferatState.kurs_guruh)
 
-@router.message(ReferatState.kurs_guruh)
+@router.message(ReferatState.kurs_guruh, F.text, ~F.text.in_(MAIN_MENU_COMMANDS))
 async def process_kurs_guruh(message: Message, state: FSMContext):
     await state.update_data(kurs_guruh=message.text)
     await message.answer("📄 Taxminan necha sahifa bo'lsin? (faqat raqam, masalan: 15)")
     await state.set_state(ReferatState.sahifa)
 
-@router.message(ReferatState.sahifa)
+@router.message(ReferatState.sahifa, F.text, ~F.text.in_(MAIN_MENU_COMMANDS))
 async def process_sahifa(message: Message, state: FSMContext):
     if not message.text.isdigit():
         await message.answer("Iltimos, faqat raqam yozing (masalan: 15).")
@@ -192,109 +193,23 @@ async def cancel_referat(callback: CallbackQuery, state: FSMContext):
     await state.clear()
 
 @router.callback_query(ReferatState.confirmation, F.data == "referat_confirm")
-async def ask_referat_tariff(callback: CallbackQuery, state: FSMContext):
-    data = await state.get_data()
-    has_promo = data.get('has_active_promo', False)
-    
-    msg_text = (
-        "<b>Ta'rifni tanlang:</b>\n\n"
-        "🔹 <b>Oddiy</b> (8 000 so'm) - Standart sifatdagi referat yoki mustaqil ish.\n"
-        "🔥 <b>PRO</b> (14 900 so'm) - Yuqori sifatli, chuqur tahliliy referat."
-    )
-    if has_promo:
-         msg_text += "\n\n🎁 <i>Sizda 50% lik chegirma faollashtirilgan!</i>"
-
-    await callback.message.edit_text(
-        msg_text,
-        reply_markup=get_referat_tariff_kb(has_promo),
-        parse_mode="HTML"
-    )
-    await state.set_state(ReferatState.tariff_selection)
-
-@router.callback_query(ReferatState.tariff_selection, F.data == "ref_promo")
-async def ask_referat_promo_code(callback: CallbackQuery, state: FSMContext):
-    await callback.message.edit_text("🎁 <b>Promo-kodni kiriting:</b>", parse_mode="HTML")
-    await state.set_state(ReferatState.promo)
-
-@router.message(ReferatState.promo)
-async def process_referat_promo_code(message: Message, state: FSMContext):
-    code = message.text.strip().upper()
-    user_id = message.from_user.id
-    
-    if code == "PROMO50":
-        if await has_used_promo(user_id, "PROMO50"):
-            await message.answer("❌ Siz bu promo-koddan allaqachon foydalangansiz.")
-            await show_confirmation(message, state)
-        else:
-            await state.update_data(has_active_promo=True, promo_code="PROMO50")
-            await message.answer("✅ Promo-kod qabul qilindi! Sizga 50% chegirma taqdim etildi.")
-            
-            # Go directly back to tariff selection
-            # Because show_confirmation expects we just reviewed data, but here we just want to select tariff again.
-            # Emulate ask_referat_tariff
-            data = await state.get_data()
-            has_promo = data.get('has_active_promo', False)
-            msg_text = (
-                "<b>Ta'rifni tanlang:</b>\n\n"
-                "🔹 <b>Oddiy</b> (8 000 so'm) - Standart sifatdagi referat yoki mustaqil ish.\n"
-                "🔥 <b>PRO</b> (14 900 so'm) - Yuqori sifatli, chuqur tahliliy referat.\n\n"
-                "🎁 <i>Sizda 50% lik chegirma faollashtirilgan!</i>"
-            )
-            await message.answer(msg_text, reply_markup=get_referat_tariff_kb(has_promo), parse_mode="HTML")
-            await state.set_state(ReferatState.tariff_selection)
-    else:
-        await message.answer("❌ Noto'g'ri promo-kod kiritildi.")
-        await show_confirmation(message, state)
-
-@router.callback_query(ReferatState.tariff_selection, F.data == "tariff_referat_back")
-async def referat_tariff_back(callback: CallbackQuery, state: FSMContext):
-    await show_confirmation(callback.message, state)
-
-@router.callback_query(ReferatState.tariff_selection, F.data.in_({"ref_tariff_oddiy", "ref_tariff_pro"}))
-async def start_plan_generation(callback: CallbackQuery, state: FSMContext, bot: Bot):
-    user_id = callback.from_user.id
-    
-    is_pro = callback.data == "ref_tariff_pro"
-    base_price = 14900 if is_pro else 8000
-    
-    data = await state.get_data()
-    has_promo = data.get('has_active_promo', False)
-    price = int(base_price * 0.5) if has_promo else base_price
-    
-    await state.update_data(tariff_price=price, is_pro=is_pro)
-    
-    # Check balance
-    balance = await get_user_balance(user_id)
-    if balance < price:
-        await callback.answer(f"❌ Balansingizda mablag' yetarli emas!\nKerak: {price} so'm\nMavjud: {balance} so'm", show_alert=True)
+async def start_plan_generation(callback: CallbackQuery, state: FSMContext):
+    if not await check_access(callback.message, callback.from_user.id, "referat"):
+        await callback.answer()
         return
-
-    await callback.message.edit_text("⏳ <b>REJA TUZILMOQDA...</b>\n\nIltimos kuting, bu 10-15 soniya vaqt olishi mumkin.", parse_mode="HTML")
-    
+    await callback.answer()
+    await callback.message.edit_text("⏳ DeepSeek R1 reja tuzmoqda...")
     data = await state.get_data()
-    lang = data.get('til', "O'zbek")
-    topic = data.get('tema')
-    
-    prompt = load_prompt("referat/10_referat_plan.txt", topic=topic, language=lang)
-    plan_text = await ai_request(prompt, is_pro=is_pro)
-    
-    if not plan_text:
-        await callback.message.answer("❌ Reja tuzishda xatolik yuz berdi. Qaytadan urinib ko'ring.")
+    prompt = load_prompt("referat/10_referat_plan.txt", topic=data['tema'], language=data.get('til', "O'zbek"))
+    try:
+        plan_text = await ai_request(prompt)
+    except Exception:
+        await show_confirmation(callback.message, state)
+        await callback.message.answer("Reja tuzilmadi. Pul yechilmadi. Qayta urinib ko‘ring.")
         return
-
     await state.update_data(plan=plan_text)
-    
-    # Save plan to DB for recovery
-    current_data = await state.get_data()
-    await save_user_referat_data(callback.from_user.id, current_data)
-    
     await state.set_state(ReferatState.waiting_for_plan_approval)
-    
-    await callback.message.answer(
-        f"📝 <b>REFERAT REJASI:</b>\n\n{plan_text}\n\nRejani tasdiqlaysizmi?", 
-        reply_markup=referat_plan_approval_kb,
-        parse_mode="HTML"
-    )
+    await show_plan(callback.message, "REFERAT REJASI (yaratish: 8 000 so‘m)", plan_text, referat_plan_approval_kb)
 
 @router.callback_query(ReferatState.confirmation, F.data == "referat_edit")
 async def edit_referat_start(callback: CallbackQuery, state: FSMContext):
@@ -338,10 +253,9 @@ async def regenerate_plan(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text("🔄 Yangi reja tuzilmoqda...")
     data = await state.get_data()
     lang = data.get('til', "O'zbek")
-    is_pro = data.get('is_pro', False)
     
     prompt = load_prompt("referat/10_referat_plan.txt", topic=data['tema'], language=lang)
-    plan_text = await ai_request(prompt, is_pro=is_pro)
+    plan_text = await ai_request(prompt)
     
     if not plan_text:
         await callback.message.answer("❌ Reja tuzishda xatolik.", reply_markup=main_menu)
@@ -365,35 +279,17 @@ async def cancel_plan(callback: CallbackQuery, state: FSMContext):
 # ---------------------------------------------------------
 
 @router.callback_query(ReferatState.waiting_for_plan_approval, F.data == "plan_approve")
+@charged_generation("referat")
 async def generate_full_content(callback: CallbackQuery, state: FSMContext):
     logger.info(f"Referat generation started for user {callback.from_user.id}")
     user_id = callback.from_user.id
     data = await state.get_data()
-    price = data.get('tariff_price', REFERAT_PRICE)
-    is_pro = data.get('is_pro', False)
-    
-    tarif_label = "🔥 PRO" if is_pro else "🔹 Oddiy"
-    
+    charge = data['generation_charge']
     await callback.message.edit_text(
-        f"⏳ Ishingiz tayyor bo'lishini kuting ({tarif_label} tarif)...\n"
-        f"Taxminiy vaqt {'5-8' if is_pro else '3-5'} daqiqa.\n"
-        f"<i>(Balansingizdan {price} so'm yechiladi)</i>", 
-        parse_mode="HTML"
-    )
-    
+        f"⏳ Referat DeepSeek R1 bilan tayyorlanmoqda. To‘lov: {int(charge['amount']):,} so‘m.")
     plan = data.get('plan')
     tema = data.get('tema')
     lang = data.get('til', "O'zbek")
-    
-    # Deduct balance and log action
-    await update_user_balance(user_id, -price)
-    await log_user_action(user_id, 'referat', amount=price)
-    
-    # Mark promo as used if applicable
-    if data.get('has_active_promo') and data.get('promo_code'):
-        await mark_promo_used(user_id, data['promo_code'])
-        # Optional: remove from state so it doesn't persist wrongly in future runs
-        await state.update_data(has_active_promo=False, promo_code=None)
 
     # --- Logic Analysis & Improvement ---
     # User Feedback: Strict page calculation causes logical issues and poor quality.
@@ -423,17 +319,16 @@ async def generate_full_content(callback: CallbackQuery, state: FSMContext):
                             instructions=instruction, 
                             language=lang)
             
-            # Use appropriate model based on tariff
-            content = await ai_request(p, is_pro=is_pro)
+            content = await ai_request(p)
             
             if not content:
                 logger.error(f"Failed to generate content for section: {section_name}")
-                return "Ushbu qismni yaratishda xatolik yuz berdi."
+                raise RuntimeError("Bo‘sh bo‘lim")
                 
             return content
         except Exception as e:
             logger.error(f"Error in generate_section ({section_name}): {e}")
-            return "Texnik xatolik."
+            raise
 
     # Helper to safe add section (Prevents Header Duplication)
     def format_section_safe(title, content):
@@ -547,7 +442,7 @@ async def generate_full_content(callback: CallbackQuery, state: FSMContext):
     # ---------------------------------------------------------
     
     # Note: We skip global rewriting to preserve the strict page count structure.
-    # The sections were already generated with MODEL_SMART for high quality.
+    # Each section uses the same academic model.
     
     await smart_delay()
 
@@ -584,56 +479,16 @@ async def generate_full_content(callback: CallbackQuery, state: FSMContext):
         
         if sent_success:
             try:
-                quality_msg = "🔥 PRO sifat — DeepSeek R1-0528 modeli bilan yaratildi" if is_pro else "✅ Standart sifat"
+                quality_msg = "✅ DeepSeek R1 bilan yaratildi"
                 await callback.message.answer(f"✅ Referat muvaffaqiyatli yakunlandi!\n{quality_msg}\n\nTanlovingiz uchun minnadormiz. Agar ushbu ishni yanada professional darajada qabul qilmoqchi bo'lsangiz mutahasislarimizga murojat qiling: @sardorbekuralov", reply_markup=main_menu)
             except:
                 pass # Ignore error on success message if doc is sent
         else:
-            await callback.message.answer(
-                "⚠️ Internet bilan aloqa yo'qolganligi sababli faylni yubora olmadim.\n"
-                "Birozdan so'ng qayta urinib ko'ring yoki /start ni bosing."
-            )
+            raise RuntimeError("Fayl Telegramga yuborilmadi")
     else:
-        await callback.message.answer("❌ Fayl yaratishda xatolik bo'ldi.", reply_markup=main_menu)
+        raise RuntimeError("Fayl yaratilmadi")
         
-    await state.clear()
 
-# ---------------------------------------------------------
-# 6. Fallback / Expired Session
-# ---------------------------------------------------------
-
-# Handle expired sessions (when state is lost but user clicks buttons)
-@router.callback_query(F.data.in_({"plan_approve", "plan_regenerate", "plan_cancel", "referat_confirm", "referat_edit", "referat_cancel", "ref_tariff_oddiy", "ref_tariff_pro", "tariff_referat_back"}))
+@router.callback_query(F.data.in_({"plan_approve", "plan_regenerate", "plan_cancel", "referat_confirm", "referat_edit", "referat_cancel"}))
 async def handle_expired_session(callback: CallbackQuery, state: FSMContext):
-    # Try to recover from DB
-    user_data = await get_user_referat_data(callback.from_user.id)
-    
-    if user_data and user_data.get('last_topic'):
-        # Restore profile data
-        await state.update_data(**user_data)
-        
-        # Restore crucial context
-        if user_data.get('last_plan'):
-             await state.update_data(plan=user_data['last_plan'])
-             await state.update_data(tema=user_data['last_topic'])
-        
-        # Restore specific state based on button context (best effort)
-        if callback.data in ["plan_approve", "plan_regenerate", "plan_cancel"]:
-            await state.set_state(ReferatState.waiting_for_plan_approval)
-        elif callback.data in ["referat_confirm", "referat_edit", "referat_cancel", "tariff_referat_back"]:
-            await state.set_state(ReferatState.confirmation)
-        elif callback.data in ["ref_tariff_oddiy", "ref_tariff_pro"]:
-            await state.set_state(ReferatState.tariff_selection)
-            
-        await callback.message.answer(
-            "🔄 <b>Sessiya qayta tiklandi!</b>\n\n"
-            "Bot yangilangan bo'lishi mumkin. Iltimos, tugmani <b>QAYTA BOSING</b>.",
-            parse_mode="HTML"
-        )
-        await callback.answer()
-    else:
-        await callback.message.answer(
-            "⚠️ Sessiya vaqti tugagan.\n"
-            "Iltimos, /start buyrug'ini bosing va qaytadan boshlang."
-        )
-        await callback.answer()
+    await callback.answer("Bu tugma eskirgan yoki buyurtma qabul qilingan. Yangi ishni menyudan boshlang.", show_alert=True)

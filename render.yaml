@@ -1,17 +1,21 @@
 services:
   - type: web
     name: orzu-bot
-    env: python
+    runtime: python
     buildCommand: pip install -r requirements.txt
     startCommand: python main.py
     envVars:
       - key: PYTHON_VERSION
-        value: 3.11.0
+        value: 3.12.10
       - key: BOT_TOKEN
         sync: false
-      - key: GROQ_API_KEY
+      - key: OPENROUTER_API_KEY
         sync: false
-      - key: UNSPLASH_API_KEY
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: BACKEND_URL
         sync: false
       - key: ADMIN_ID
         sync: false

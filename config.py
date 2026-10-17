@@ -6,7 +6,6 @@ load_dotenv()
 
 
 BOT_TOKEN = os.getenv('BOT_TOKEN')
-GROQ_API_KEY = os.getenv('GROQ_API_KEY')
 OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY')
 UNSPLASH_API_KEY = os.getenv('UNSPLASH_API_KEY')
 if UNSPLASH_API_KEY:
@@ -14,8 +13,8 @@ if UNSPLASH_API_KEY:
 
 if not BOT_TOKEN:
     raise ValueError('BOT_TOKEN topilmadi!')
-# if not GROQ_API_KEY:
-#     raise ValueError('GROQ_API_KEY topilmadi!')
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'https://orzu-two.vercel.app').rstrip('/')
+CHANNEL_USERNAME = os.getenv('CHANNEL_USERNAME', '@yordamch_AI')
 
 # Admin IDs
 ADMIN_IDS = []

@@ -1,26 +1,34 @@
 import os
+from config import CHANNEL_USERNAME
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.types.web_app_info import WebAppInfo
 
-WEBAPP_URL = os.getenv("FRONTEND_URL", "https://orzu-two.vercel.app")
+WEBAPP_URL = (os.getenv("MINI_APP_URL") or (os.getenv("BACKEND_URL", "").rstrip("/") + "/miniapp" if os.getenv("BACKEND_URL") else os.getenv("FRONTEND_URL", "https://orzu-two.vercel.app"))).rstrip("/")
 
-# Asosiy menu (reply tugmalar)
-main_menu = ReplyKeyboardMarkup(
-    keyboard=[
-        [KeyboardButton(text="📋 Obyektivka tayyorlash")],
-        [KeyboardButton(text="📄 Referat yaratish"), KeyboardButton(text="📊 Taqdimot yaratish")],
-        [KeyboardButton(text="Kurs ishi"), KeyboardButton(text="💰 Tayyor ishlar")],
-        [KeyboardButton(text="💳 Hisobni to'ldirish"), KeyboardButton(text="🆘 Yordam")],
-        [KeyboardButton(text="💵 Narxlar"), KeyboardButton(text="📝 Buyurtma asosida yaratish")],
-        [KeyboardButton(text="🎓 Bitiruv Malakaviy ishi"), KeyboardButton(text="🎨 Grafik dizayn tayyorlash")],
-    ],
-    resize_keyboard=True
-)
+main_menu = ReplyKeyboardMarkup(keyboard=[
+    [KeyboardButton(text="📊 Taqdimot yaratish"), KeyboardButton(text="Kurs ishi")],
+    [KeyboardButton(text="📄 Referat yaratish"), KeyboardButton(text="📝 Maqola yaratish")],
+    [KeyboardButton(text="🎁 Do‘stlarni taklif qilish"), KeyboardButton(text="👤 Hisob va limitlar")],
+    [KeyboardButton(text="💳 Hisobni to'ldirish"), KeyboardButton(text="💵 Narxlar")],
+    [KeyboardButton(text="📋 Obyektivka tayyorlash"), KeyboardButton(text="🆘 Yordam")],
+], resize_keyboard=True)
+
+access_keyboard = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text="🎁 5 ta do‘st taklif qilish", callback_data="invite")],
+    [InlineKeyboardButton(text="🗓 Bir oylik obuna — 25 000 so‘m", callback_data="subscribe")],
+    [InlineKeyboardButton(text="💳 Hisobni to‘ldirish", callback_data="payment"),
+     InlineKeyboardButton(text="👤 Limitlarim", callback_data="account")],
+])
+subscription_confirm_kb = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text="✅ Balansdan 25 000 so‘mga sotib olish", callback_data="subscribe_confirm")],
+    [InlineKeyboardButton(text="💳 Karta orqali 25 000 so‘m to‘lash", callback_data="pay_subscription")],
+    [InlineKeyboardButton(text="🎁 Do‘st taklif qilish", callback_data="invite")],
+])
 
 # Obyektivka uchun havola tugmasi (Standart oyna)
 obyektivka_link_kb = InlineKeyboardMarkup(
     inline_keyboard=[
-        [InlineKeyboardButton(text="📋 Standart oynani ochish", web_app=WebAppInfo(url=f"{WEBAPP_URL}?tab=standard"))]
+        [InlineKeyboardButton(text="📋 Standart oynani ochish", web_app=WebAppInfo(url=f"{os.getenv("FRONTEND_URL", "https://orzu-two.vercel.app").rstrip(chr(47))}?tab=standard"))]
     ]
 )
 
@@ -34,32 +42,20 @@ design_link_kb = InlineKeyboardMarkup(
 # Obuna tekshirish klaviaturasi
 subscribe_channel_kb = InlineKeyboardMarkup(
     inline_keyboard=[
-        [InlineKeyboardButton(text="📢 Kanalga obuna bo'lish", url="https://t.me/yordamch_AI")],
+        [InlineKeyboardButton(text="📢 Kanalga obuna bo'lish", url=f"https://t.me/{CHANNEL_USERNAME.lstrip(chr(64))}")],
         [InlineKeyboardButton(text="✅ Tasdiqlash", callback_data="check_subscription")]
     ]
 )
 
 # Hisobni to'ldirish inline tugmalari
-payment_keyboard = InlineKeyboardMarkup(
-    inline_keyboard=[
-        [
-            InlineKeyboardButton(text="5 000 so'm", callback_data="pay_5000"),
-            InlineKeyboardButton(text="10 000 so'm", callback_data="pay_10000"),
-        ],
-        [
-            InlineKeyboardButton(text="15 000 so'm", callback_data="pay_15000"),
-            InlineKeyboardButton(text="20 000 so'm", callback_data="pay_20000"),
-        ],
-        [
-            InlineKeyboardButton(text="25 000 so'm", callback_data="pay_25000"),
-            InlineKeyboardButton(text="30 000 so'm", callback_data="pay_30000"),
-        ],
-        [
-            InlineKeyboardButton(text="50 000 so'm", callback_data="pay_50000"),
-            InlineKeyboardButton(text="⬅️ Orqaga", callback_data="back_main"),
-        ],
-    ]
-)
+payment_keyboard = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text="🗓 Obuna — 25 000 so‘m", callback_data="pay_subscription")],
+    [InlineKeyboardButton(text="8 000 so‘m", callback_data="pay_8000"),
+     InlineKeyboardButton(text="10 000 so‘m", callback_data="pay_10000")],
+    [InlineKeyboardButton(text="30 000 so‘m", callback_data="pay_30000"),
+     InlineKeyboardButton(text="50 000 so‘m", callback_data="pay_50000")],
+    [InlineKeyboardButton(text="⬅️ Orqaga", callback_data="back_main")],
+])
 
 # Chek yuborish tugmasi
 send_receipt_kb = InlineKeyboardMarkup(
@@ -81,46 +77,6 @@ def get_admin_approval_kb(payment_id):
     )
 
 
-
-def get_page_selection_kb():
-    """Taqdimot sahifalarini tanlash (5 dan 30 gacha, 5 qadam bilan)"""
-    buttons = []
-    # 5, 10, 15, 20, 25, 30 sahifalar uchun tugmalar
-    row = []
-    for i in range(5, 31, 5):
-        row.append(InlineKeyboardButton(text=f"{i} sahifa", callback_data=f"ppt_pages_{i}"))
-        if len(row) == 3:
-            buttons.append(row)
-            row = []
-    if row:
-        buttons.append(row)
-    return InlineKeyboardMarkup(inline_keyboard=buttons)
-
-# Shablon tanlash uchun inline tugmalar (1-10)
-template_selection_kb = InlineKeyboardMarkup(
-    inline_keyboard=[
-        [
-            InlineKeyboardButton(text="1. Modern Blue", callback_data="template_1"),
-            InlineKeyboardButton(text="2. Historical", callback_data="template_2"),
-        ],
-        [
-            InlineKeyboardButton(text="3. Terminal", callback_data="template_3"),
-            InlineKeyboardButton(text="4. Playful", callback_data="template_4"),
-        ],
-        [
-            InlineKeyboardButton(text="5. Cybernetic", callback_data="template_5"),
-            InlineKeyboardButton(text="6. Eco Haven", callback_data="template_6"),
-        ],
-        [
-            InlineKeyboardButton(text="7. Retro Wave", callback_data="template_7"),
-            InlineKeyboardButton(text="8. Premium", callback_data="template_8"),
-        ],
-        [
-            InlineKeyboardButton(text="9. Simple", callback_data="template_9"),
-            InlineKeyboardButton(text="10. Elegance", callback_data="template_10"),
-        ],
-    ]
-)
 
 # Til tanlash uchun inline tugmalar
 language_selection_kb = InlineKeyboardMarkup(
@@ -146,38 +102,10 @@ referat_type_kb = InlineKeyboardMarkup(
     ]
 )
 
-# Taqdimot rejimi uchun (Rasmli/Rasmsiz)
-presentation_mode_kb = InlineKeyboardMarkup(
-    inline_keyboard=[
-        [InlineKeyboardButton(text="🖼 Rasm kiritish", callback_data="presentation_custom")],
-        [InlineKeyboardButton(text="🤖 AI yordamida", callback_data="presentation_ai")],
-        [InlineKeyboardButton(text="🚫 Rasmsiz", callback_data="presentation_none")],
-    ]
-)
-
-# Rasmlarni tasdiqlash uchun
-presentation_img_confirm_kb = InlineKeyboardMarkup(
-    inline_keyboard=[
-        [InlineKeyboardButton(text="✅ Tasdiqlash", callback_data="images_confirm")],
-        [InlineKeyboardButton(text="❌ Bekor qilish", callback_data="images_cancel")],
-    ]
-)
-
-# Taqdimotni tasdiqlash uchun inline tugmalar
-presentation_confirm_inline_kb = InlineKeyboardMarkup(
-    inline_keyboard=[
-        [InlineKeyboardButton(text="✅Tayyorlash", callback_data="presentation_confirm")],
-        [
-            InlineKeyboardButton(text="✏️O'zgartirish", callback_data="presentation_edit"),
-            InlineKeyboardButton(text="🚫Rad etish", callback_data="presentation_cancel")
-        ],
-    ]
-)
-
 # Referatni tasdiqlash uchun inline tugmalar
 referat_confirm_inline_kb = InlineKeyboardMarkup(
     inline_keyboard=[
-        [InlineKeyboardButton(text="✅Tayyorlash", callback_data="referat_confirm")],
+        [InlineKeyboardButton(text="📝 Reja tuzish", callback_data="referat_confirm")],
         [
             InlineKeyboardButton(text="✏️O'zgartirish", callback_data="referat_edit"),
             InlineKeyboardButton(text="🚫Rad etish", callback_data="referat_cancel")
@@ -210,23 +138,10 @@ referat_edit_selection_kb = InlineKeyboardMarkup(
     ]
 )
 
-# Referat Tariflarini tanlash
-def get_referat_tariff_kb(has_promo: bool = False):
-    oddiy_price = 4000 if has_promo else 8000
-    pro_price = 7450 if has_promo else 14900
-    kb = [
-        [InlineKeyboardButton(text=f"Oddiy ({oddiy_price:,} so'm)".replace(',', ' '), callback_data="ref_tariff_oddiy")],
-        [InlineKeyboardButton(text=f"PRO ({pro_price:,} so'm) 🔥".replace(',', ' '), callback_data="ref_tariff_pro")],
-    ]
-    if not has_promo:
-        kb.append([InlineKeyboardButton(text="🎁 Promo-kod kiritish", callback_data="ref_promo")])
-    kb.append([InlineKeyboardButton(text="⬅️ Ortga", callback_data="tariff_referat_back")])
-    return InlineKeyboardMarkup(inline_keyboard=kb)
-
 # Kurs ishi tasdiqlash uchun inline tugmalar
 course_confirm_inline_kb = InlineKeyboardMarkup(
     inline_keyboard=[
-        [InlineKeyboardButton(text="✅Tayyorlash", callback_data="course_confirm")],
+        [InlineKeyboardButton(text="📝 Reja tuzish", callback_data="course_confirm")],
         [
             InlineKeyboardButton(text="✏️O'zgartirish", callback_data="course_edit"),
             InlineKeyboardButton(text="🚫Rad etish", callback_data="course_cancel")
@@ -259,25 +174,10 @@ course_edit_selection_kb = InlineKeyboardMarkup(
     ]
 )
 
-# Kurs ishi Tariflarini tanlash
-def get_course_tariff_kb(has_promo: bool = False):
-    oddiy_price = 7500 if has_promo else 15000
-    pro_price = 14950 if has_promo else 29900
-    kb = [
-        [InlineKeyboardButton(text=f"Oddiy ({oddiy_price:,} so'm)".replace(',', ' '), callback_data="course_tariff_oddiy")],
-        [InlineKeyboardButton(text=f"PRO ({pro_price:,} so'm) 🔥".replace(',', ' '), callback_data="course_tariff_pro")],
-    ]
-    if not has_promo:
-        kb.append([InlineKeyboardButton(text="🎁 Promo-kod kiritish", callback_data="course_promo")])
-    kb.append([InlineKeyboardButton(text="⬅️ Ortga", callback_data="tariff_course_back")])
-    return InlineKeyboardMarkup(inline_keyboard=kb)
-
-
-
 # Referat Reja tasdiqlash uchun
 referat_plan_approval_kb = InlineKeyboardMarkup(
     inline_keyboard=[
-        [InlineKeyboardButton(text="✅ Tasdiqlayman", callback_data="plan_approve")],
+        [InlineKeyboardButton(text="✅ 8 000 so‘mga yaratish", callback_data="plan_approve")],
         [InlineKeyboardButton(text="🔄 Boshqa reja", callback_data="plan_regenerate")],
         [InlineKeyboardButton(text="🚫 Bekor qilish", callback_data="plan_cancel")]
     ]
@@ -286,19 +186,8 @@ referat_plan_approval_kb = InlineKeyboardMarkup(
 # Kurs ishi Reja tasdiqlash uchun
 course_plan_approval_kb = InlineKeyboardMarkup(
     inline_keyboard=[
-        [InlineKeyboardButton(text="✅ Tasdiqlayman", callback_data="course_plan_approve")],
+        [InlineKeyboardButton(text="✅ Limitdan yoki 30 000 so‘mga yaratish", callback_data="course_plan_approve")],
         [InlineKeyboardButton(text="🔄 Boshqa reja", callback_data="course_plan_regenerate")],
         [InlineKeyboardButton(text="🚫 Bekor qilish", callback_data="course_plan_cancel")]
     ]
 )
-
-__all__ = [
-    "main_menu", "payment_keyboard", "send_receipt_kb", "get_admin_approval_kb",
-    "presentation_mode_kb", "presentation_confirm_inline_kb",
-    "presentation_img_confirm_kb", "template_selection_kb", 
-    "language_selection_kb", "referat_confirm_inline_kb", "referat_edit_selection_kb",
-    "course_confirm_inline_kb", "course_edit_selection_kb",
-    "referat_type_kb", "referat_plan_approval_kb", "course_plan_approval_kb",
-    "subscribe_channel_kb", "get_referat_tariff_kb", "get_course_tariff_kb",
-    "get_page_selection_kb", "design_link_kb", "obyektivka_link_kb"
-]

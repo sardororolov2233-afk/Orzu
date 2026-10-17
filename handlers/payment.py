@@ -1,328 +1,192 @@
+"""Card receipts are reviewed by an admin; image analysis never credits money."""
+import hashlib
 import io
 import logging
+from html import escape
 from aiogram import Router, F, Bot
+from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from keyboards import payment_keyboard, send_receipt_kb, get_admin_approval_kb, main_menu
+from keyboards import payment_keyboard, send_receipt_kb, get_admin_approval_kb, main_menu, access_keyboard
 from config import ADMIN_IDS
-from database import (
-    update_user_balance, get_user_balance, log_user_action,
-    create_pending_payment, approve_pending_payment,
-    reject_pending_payment, record_verified_receipt
-)
+from commerce import PAYMENT_CARD, CommerceError
+from database import (get_user_balance, create_pending_payment, approve_pending_payment,
+    reject_pending_payment, get_pending_payments_list)
 from ai.receipt_verifier import verify_receipt_image
+from handlers.access import account_text
 
 router = Router()
 logger = logging.getLogger(__name__)
 
+
 class PaymentState(StatesGroup):
     amount_selection = State()
     waiting_receipt = State()
+    reviewing = State()
+
 
 @router.message(F.text == "💳 Hisobni to'ldirish")
-async def balance_handler(message: Message):
+async def balance_handler(message: Message, state: FSMContext):
+    await state.clear()
     balance = await get_user_balance(message.from_user.id)
-    balance_int = int(balance)
-    
-    await message.answer(
-        f"💳 Sizning hisobingizda: <b>{balance_int:,} so'm</b>\n\n"
-        "Hisobni to'ldirish uchun summani tanlang:",
-        parse_mode="HTML",
-        reply_markup=payment_keyboard
-    )
+    await message.answer(f"💳 Balans: {int(balance):,} so‘m.\n\nTo‘lov turini tanlang. "
+        "Obuna — 25 000 so‘mga bir oy va 10 ta taqdimot. Boshqa summalar balansga qo‘shiladi.", reply_markup=payment_keyboard)
 
-@router.callback_query(F.data == "payment")
-async def payment_start_callback(callback: CallbackQuery):
-    balance = await get_user_balance(callback.from_user.id)
-    balance_int = int(balance)
-    
-    await callback.message.edit_text(
-        f"💳 Sizning hisobingizda: <b>{balance_int:,} so'm</b>\n\n"
-        "Hisobni to'ldirish uchun summani tanlang:",
-        parse_mode="HTML",
-        reply_markup=payment_keyboard
-    )
+
+@router.callback_query(F.data == 'payment')
+async def payment_start_callback(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
+    await _payment_menu(callback, state)
 
-@router.callback_query(F.data.startswith("pay_"))
+
+async def _payment_menu(callback, state):
+    await state.clear()
+    balance = await get_user_balance(callback.from_user.id)
+    await callback.message.answer(f"💳 Balans: {int(balance):,} so‘m. To‘lovni tanlang:", reply_markup=payment_keyboard)
+
+
+@router.callback_query(F.data.startswith('pay_'))
 async def payment_amount_selected(callback: CallbackQuery, state: FSMContext):
-    amount_map = {
-        "pay_5000": 5000,
-        "pay_10000": 10000,
-        "pay_15000": 15000,
-        "pay_20000": 20000,
-        "pay_25000": 25000,
-        "pay_30000": 30000,
-        "pay_50000": 50000,
-    }
-    
-    amount = amount_map.get(callback.data)
-    if not amount:
+    options = {'pay_8000': 8000, 'pay_10000': 10000, 'pay_30000': 30000, 'pay_50000': 50000,
+        'pay_subscription': 25000}
+    amount = options.get(callback.data)
+    if amount is None:
+        await callback.answer('Bu to‘lov tugmasi eskirgan. Hisob menyusini oching.', show_alert=True)
         return
+    purpose = 'subscription' if callback.data == 'pay_subscription' else 'topup'
+    await state.update_data(payment_amount=amount, payment_purpose=purpose)
+    await state.set_state(PaymentState.amount_selection)
+    await callback.answer()
+    label = 'Bir oylik obuna (10 ta taqdimot)' if purpose == 'subscription' else 'Balansni to‘ldirish'
+    await callback.message.answer(
+        f"💳 <b>{label}</b>\nSumma: {amount:,} so‘m\n"
+        f"Karta: <code>{PAYMENT_CARD}</code>\nKarta egasi: O‘ralov Sardorbek\n\n"
+        "To‘lovdan so‘ng chek rasmini yuboring. Mablag‘ kelib tushgani admin tomonidan "
+        "tekshirilgach obuna yoki balans faollashadi.", parse_mode='HTML', reply_markup=send_receipt_kb)
 
-    await state.update_data(payment_amount=amount)
-    
-    bonus_note = "\n🎁 <i>20,000 so'm va undan ortiq to'lovlar uchun +50% BONUS qo'shiladi!</i>\n" if amount >= 20000 else ""
 
-    text = (
-        f"💳 <b>To'lov summasi:</b> {amount:,} so'm\n{bonus_note}\n"
-        f"💳 <b>Karta raqami:</b> <code>9860020144204623</code>\n"
-        f"👤 <b>Karta egasi:</b> O'ralov sardorbek\n\n"
-        f"📋 <i>Karta raqami ustiga bossangiz avtomatik nusxa olinadi.</i>\n\n"
-        f"⚠️ <b>DIQQAT:</b> To'lov cheki sun'iy intellekt (AI) orqali avtomatik tekshiriladi. "
-        f"Soxta yoki dublikat chek yuborish taqiqlanadi!\n\n"
-        f"To'lov qilganingizdan so'ng, <b>Chekni yuborish</b> tugmasini bosing."
-    )
-    
-    await callback.message.edit_text(text, parse_mode="HTML", reply_markup=send_receipt_kb)
-
-@router.callback_query(F.data == "send_receipt")
+@router.callback_query(PaymentState.amount_selection, F.data == 'send_receipt')
 async def ask_receipt(callback: CallbackQuery, state: FSMContext):
-    await callback.message.delete()
-    await callback.message.answer("📸 Iltimos, to'lov chekini rasm ko'rinishida yuboring:")
+    await callback.answer()
     await state.set_state(PaymentState.waiting_receipt)
+    await callback.message.answer('📸 To‘lov chekining rasmini yuboring:')
 
-@router.callback_query(F.data == "payment_cancel")
+
+@router.callback_query(F.data.in_({'payment_cancel', 'back_main'}))
 async def cancel_payment(callback: CallbackQuery, state: FSMContext):
     await state.clear()
-    await callback.message.delete()
-    await callback.message.answer("To'lov bekor qilindi.", reply_markup=main_menu)
+    await callback.answer()
+    await callback.message.answer('Asosiy menyu:', reply_markup=main_menu)
 
-@router.callback_query(F.data == "back_main")
-async def back_main_handler(callback: CallbackQuery):
-    await callback.message.delete()
-    await callback.message.answer("Asosiy menyu:", reply_markup=main_menu)
 
 @router.message(PaymentState.waiting_receipt, F.photo)
 async def process_receipt(message: Message, state: FSMContext, bot: Bot):
     data = await state.get_data()
-    amount = data.get("payment_amount")
-    if not amount:
-        await message.answer("❌ Summa topilmadi. Iltimos, /start buyrug'ini yuboring va qaytadan to'lov qiling.")
+    amount = data.get('payment_amount')
+    if amount is None:
         await state.clear()
+        await message.answer('To‘lov summasini qayta tanlang.', reply_markup=payment_keyboard)
         return
-
-    user = message.from_user
+    await state.set_state(PaymentState.reviewing)
     receipt_file_id = message.photo[-1].file_id
-    username_str = f"@{user.username}" if user.username else "yo'q"
-    
-    # 1. Bildirishnoma: chek tasdiqlanmoqda
-    status_msg = await message.answer(
-        "⏳ <b>Chek tasdiqlanmoqda...</b>\n\n"
-        "Sun'iy intellekt (AI) to'lov chekini tahlil qilmoqda, iltimos kuting...",
-        parse_mode="HTML"
-    )
-    
-    await state.clear()
-
-    # 2. Rasmni yuklab olish
+    progress = await message.answer('⏳ Chek qabul qilinmoqda...')
     try:
-        photo_file = await bot.get_file(receipt_file_id)
-        photo_io = io.BytesIO()
-        await bot.download_file(photo_file.file_path, destination=photo_io)
-        image_bytes = photo_io.getvalue()
-    except Exception as e:
-        logger.error(f"Rasmni yuklab olishda xatolik: {e}")
-        await status_msg.edit_text(
-            "❌ Rasmni yuklab olishda xatolik yuz berdi. Iltimos, birozdan so'ng qayta urinib ko'ring yoki administratorga murojaat qiling: @sardorbekuralov"
-        )
+        photo = await bot.get_file(receipt_file_id)
+        if (photo.file_size or 0) > 10 * 1024 * 1024:
+            raise ValueError('Rasm 10 MB dan katta')
+        stream = io.BytesIO()
+        await bot.download_file(photo.file_path, destination=stream)
+        image_bytes = stream.getvalue()
+        try:
+            review = await verify_receipt_image(image_bytes, amount)
+        except Exception:
+            logger.exception('Receipt analysis unavailable')
+            review = {'is_valid': False, 'rejection_reason': 'AI tahlili mavjud emas; qo‘lda tekshiring.'}
+        payment_id = await create_pending_payment(message.from_user.id, amount, receipt_file_id,
+            username=message.from_user.username, full_name=message.from_user.full_name,
+            purpose=data.get('payment_purpose', 'topup'), receipt_hash=hashlib.sha256(image_bytes).hexdigest(),
+            receipt_tx=review.get('transaction_id'), review=review)
+        if not payment_id:
+            raise RuntimeError('To‘lov saqlanmadi')
+    except Exception:
+        logger.exception('Receipt could not be saved')
+        await state.clear()
+        await progress.edit_text('Chek saqlanmadi yoki oldin yuborilgan. Hisob menyusidan qayta urinib ko‘ring. '
+            'Takroriy chek yangi to‘lov bermaydi.')
         return
-
-    # 3. AI orqali chekni tahlil qilish
-    try:
-        verify_result = await verify_receipt_image(image_bytes=image_bytes, expected_amount=amount)
-    except Exception as e:
-        logger.error(f"AI tekshiruvida xatolik: {e}")
-        verify_result = {
-            "is_valid": False,
-            "rejection_reason": "Tizimda texnik xatolik yuz berdi. Iltimos administrator bilan bog'laning: @sardorbekuralov"
-        }
-
-    # 4. Agar AI chekni TASDIQLASA:
-    if verify_result.get("is_valid"):
-        tx_id = verify_result.get("transaction_id")
-        image_hash = verify_result.get("image_hash")
-
-        # Bazaga to'lovni yozish
-        payment_id = await create_pending_payment(
-            user_id=user.id,
-            amount=amount,
-            receipt_file_id=receipt_file_id,
-            username=user.username,
-            full_name=user.full_name
-        )
-
-        approved = None
-        if payment_id:
-            approved = await approve_pending_payment(payment_id)
-
-        # Dublikatlarni oldini olish uchun yozib qo'yish
-        await record_verified_receipt(
-            user_id=user.id,
-            tx_id=tx_id,
-            image_hash=image_hash,
-            amount=amount
-        )
-
-        new_balance = await get_user_balance(user.id)
-        new_balance_int = int(new_balance)
-        final_amount = approved["amount"] if approved else amount
-        bonus_msg = f"\n🎁 <i>20,000+ so'm uchun 50% bonus qo'shildi!</i>" if final_amount > amount else ""
-        tx_msg = f"\n🧾 <b>Tranzaksiya ID:</b> <code>{tx_id}</code>" if tx_id else ""
-        date_msg = f"\n📅 <b>Vaqt:</b> {verify_result.get('date_time')}" if verify_result.get('date_time') else ""
-
-        # Foydalanuvchiga muvaffaqiyat bildirishnomasi
-        success_text = (
-            f"✅ <b>To'lovingiz muvaffaqiyatli tasdiqlandi!</b>\n\n"
-            f"💰 <b>Qo'shilgan summa:</b> {final_amount:,} so'm{bonus_msg}\n"
-            f"💳 <b>Joriy balansingiz:</b> <b>{new_balance_int:,} so'm</b>"
-            f"{tx_msg}"
-            f"{date_msg}\n\n"
-            f"🎉 Bot xizmatlaridan to'liq foydalanishingiz mumkin!",
-        )
-
+    await state.clear()
+    await progress.edit_text(f"✅ Chek saqlandi. Buyurtma #{payment_id}. Admin to‘lovni tekshiradi.")
+    note = 'AI: mos' if review.get('is_valid') else f"AI: {review.get('rejection_reason') or 'qo‘lda tekshiring'}"
+    for admin_id in ADMIN_IDS:
         try:
-            await status_msg.edit_text(success_text[0], parse_mode="HTML", reply_markup=main_menu)
+            await bot.send_photo(admin_id, receipt_file_id, caption=(
+                f"💳 To‘lov #{escape(payment_id)}\n"
+                f"Foydalanuvchi: {escape(message.from_user.full_name)}\nID: {message.from_user.id}\n"
+                f"Summa: {amount:,} so‘m\nTuri: {data.get('payment_purpose', 'topup')}\n"
+                f"{escape(note[:350])}\n\nKartaga pul kelganini tekshirib tasdiqlang."),
+                parse_mode='HTML', reply_markup=get_admin_approval_kb(payment_id))
         except Exception:
-            await message.answer(success_text[0], parse_mode="HTML", reply_markup=main_menu)
+            logger.exception('Admin notification failed; payment remains in /payments')
 
-        # Adminga xabarnoma yuborish
-        for admin_id in ADMIN_IDS:
-            try:
-                await bot.send_message(
-                    chat_id=admin_id,
-                    text=(
-                        f"🤖 <b>AI to'lovni avtomatik tasdiqladi!</b>\n\n"
-                        f"👤 <b>Foydalanuvchi:</b> {user.full_name} ({username_str})\n"
-                        f"🆔 <b>ID:</b> <code>{user.id}</code>\n"
-                        f"💰 <b>Summa:</b> {amount:,} so'm (Balansga: {final_amount:,} so'm)\n"
-                        f"🧾 <b>Tranzaksiya:</b> <code>{tx_id or 'yo\'q'}</code>\n"
-                        f"💳 <b>Yangi balans:</b> {new_balance_int:,} so'm\n"
-                        f"🔑 <b>Payment ID:</b> {payment_id}"
-                    ),
-                    parse_mode="HTML"
-                )
-            except Exception as e:
-                logger.error(f"Admin {admin_id} ga bildirishnoma yuborishda xatolik: {e}")
-
-    # 5. Agar AI chekni RAD ETGAN bo'lsa:
-    else:
-        reason = verify_result.get("rejection_reason") or "To'lov cheki tasdiqlanmadi."
-        
-        # Bazada rad etilgan to'lov sifatida qayd qilish
-        await create_pending_payment(
-            user_id=user.id,
-            amount=amount,
-            receipt_file_id=f"REJECTED_{receipt_file_id[:30]}",
-            username=user.username,
-            full_name=user.full_name
-        )
-
-        rejection_text = (
-            f"❌ <b>To'lov cheki qabul qilinmadi!</b>\n\n"
-            f"⚠️ <b>Sabab:</b> {reason}\n\n"
-            f"Iltimos, qaytadan urinib ko'ring yoki karta rekvizitlarini to'g'ri tekshirib to'lang.\n"
-            f"Agar bu xatolik deb hisoblasangiz, administrator bilan bog'laning: @sardorbekuralov"
-        )
-
-        try:
-            await status_msg.edit_text(rejection_text, parse_mode="HTML", reply_markup=main_menu)
-        except Exception:
-            await message.answer(rejection_text, parse_mode="HTML", reply_markup=main_menu)
-
-        # Adminga rasm bilan birga xabarnoma yuborish
-        for admin_id in ADMIN_IDS:
-            try:
-                await bot.send_photo(
-                    chat_id=admin_id,
-                    photo=receipt_file_id,
-                    caption=(
-                        f"⚠️ <b>AI to'lov chekini rad etdi!</b>\n\n"
-                        f"👤 <b>Foydalanuvchi:</b> {user.full_name} ({username_str})\n"
-                        f"🆔 <b>ID:</b> <code>{user.id}</code>\n"
-                        f"💰 <b>Tanlangan summa:</b> {amount:,} so'm\n"
-                        f"❌ <b>Sabab:</b> {reason}"
-                    ),
-                    parse_mode="HTML"
-                )
-            except Exception as e:
-                logger.error(f"Admin {admin_id} ga rad etilgan chekni yuborishda xatolik: {e}")
 
 @router.message(PaymentState.waiting_receipt)
 async def process_non_photo_receipt(message: Message):
-    await message.answer(
-        "📸 Iltimos, to'lov chekini faqat <b>rasm (skrinshot)</b> ko'rinishida yuboring.",
-        parse_mode="HTML"
-    )
+    await message.answer('📸 Chekni rasm ko‘rinishida yuboring.')
 
-@router.callback_query(F.data.startswith("approve_"))
+
+@router.message(Command('payments'))
+async def pending_payments(message: Message, bot: Bot):
+    if message.from_user.id not in ADMIN_IDS:
+        return
+    pending = await get_pending_payments_list()
+    if not pending:
+        await message.answer('Kutilayotgan to‘lovlar yo‘q.')
+    for payment in pending[:30]:
+        await bot.send_photo(message.chat.id, payment['receipt_file_id'],
+            caption=f"To‘lov #{payment['id']} | {payment['user_id']} | {payment['amount']} so‘m | {payment.get('purpose', 'topup')}",
+            reply_markup=get_admin_approval_kb(payment['id']))
+
+
+@router.callback_query(F.data.startswith('approve_'))
 async def approve_payment(callback: CallbackQuery, bot: Bot):
-    try:
-        payment_id = int(callback.data[len("approve_"):])
-    except ValueError:
-        await callback.answer("❌ Noto'g'ri to'lov ID!", show_alert=True)
+    if callback.from_user.id not in ADMIN_IDS:
+        await callback.answer('Ruxsat yo‘q.', show_alert=True)
         return
-    
-    result = await approve_pending_payment(payment_id)
-    if not result:
-        await callback.answer("❌ Bu to'lov allaqachon ko'rib chiqilgan!", show_alert=True)
-        return
-    
-    user_id = result["user_id"]
-    amount = result["amount"]
-    
-    new_balance = await get_user_balance(user_id)
-    new_balance_int = int(new_balance)
-    
-    await log_user_action(user_id, 'topup', amount=amount)
     try:
-        await callback.message.edit_caption(
-            caption=f"{callback.message.caption}\n\n✅ QO'LDA TASDIQLANDI ✅\n💰 Yangi balans: {new_balance_int:,} so'm"
-        )
+        payment = await approve_pending_payment(callback.data[len('approve_'):])
+    except CommerceError as exc:
+        await callback.answer(str(exc), show_alert=True)
+        return
+    if not payment:
+        await callback.answer('Bu to‘lov allaqachon ko‘rib chiqilgan.', show_alert=True)
+        return
+    await callback.answer('To‘lov tasdiqlandi.')
+    await callback.message.edit_reply_markup(reply_markup=None)
+    try:
+        await bot.send_message(payment['user_id'], '✅ To‘lov tasdiqlandi.\n\n' + await account_text(payment['user_id']),
+            reply_markup=access_keyboard)
     except Exception:
-        pass
-    try:
-        await bot.send_message(
-            user_id,
-            f"✅ To'lovingiz admin tomonidan tasdiqlandi!\n\n"
-            f"💰 Hisobingizga <b>{amount:,} so'm</b> qo'shildi.\n"
-            f"💳 Joriy balans: <b>{new_balance_int:,} so'm</b>",
-            parse_mode="HTML"
-        )
-    except Exception as e:
-        logger.warning(f"Foydalanuvchiga xabar yuborib bo'lmadi {user_id}: {e}")
-    await callback.answer("✅ To'lov tasdiqlandi!", show_alert=True)
+        logger.exception('Payment confirmation notification failed')
 
-@router.callback_query(F.data.startswith("reject_"))
+
+@router.callback_query(F.data.startswith('reject_'))
 async def reject_payment(callback: CallbackQuery, bot: Bot):
-    try:
-        payment_id = int(callback.data[len("reject_"):])
-    except ValueError:
-        await callback.answer("❌ Noto'g'ri to'lov ID!", show_alert=True)
+    if callback.from_user.id not in ADMIN_IDS:
+        await callback.answer('Ruxsat yo‘q.', show_alert=True)
         return
-    
-    result = await reject_pending_payment(payment_id)
-    if not result:
-        await callback.answer("❌ Bu to'lov allaqachon ko'rib chiqilgan!", show_alert=True)
-        return
-    
-    user_id = result["user_id"]
-    amount = result["amount"]
-    
     try:
-        await callback.message.edit_caption(
-            caption=f"{callback.message.caption}\n\n❌ QO'LDA RAD ETILDI"
-        )
+        payment = await reject_pending_payment(callback.data[len('reject_'):])
+    except CommerceError as exc:
+        await callback.answer(str(exc), show_alert=True)
+        return
+    if not payment:
+        await callback.answer('Bu to‘lov allaqachon ko‘rib chiqilgan.', show_alert=True)
+        return
+    await callback.answer('To‘lov rad etildi.')
+    await callback.message.edit_reply_markup(reply_markup=None)
+    try:
+        await bot.send_message(payment['user_id'], f"❌ {int(payment['amount']):,} so‘mlik to‘lov tasdiqlanmadi. "
+            'Savollar uchun: @sardorbekuralov', reply_markup=payment_keyboard)
     except Exception:
-        pass
-    try:
-        await bot.send_message(
-            user_id,
-            f"❌ Sizning {amount} so'mlik to'lovingiz admin tomonidan rad etildi.\n"
-            f"Sabab: Chek noto'g'ri yoki to'lov tushmagan.\n"
-            f"Murojaat uchun: @sardorbekuralov"
-        )
-    except:
-        pass
-    await callback.answer("❌ To'lov rad etildi!", show_alert=True)
+        logger.exception('Payment rejection notification failed')

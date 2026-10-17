@@ -1,6 +1,5 @@
 aiogram
 python-dotenv
-groq
 python-docx
 aiohttp
 supabase
