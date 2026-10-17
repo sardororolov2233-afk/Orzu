@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 def create_course_word_document(tema: str, sahifa: int, uslub: str, text: str, 
                         universitet: str, fakultet: str, muallif: str, 
-                        kurs_guruh: str, doc_type: str = "KURS ISHI", plan: str = None, user_id: int = None, is_pro: bool = False) -> str: 
+                        kurs_guruh: str, doc_type: str = "KURS ISHI", plan: str = None, user_id: int = None) -> str:
     """Word formatida KURS ISHI yaratish (Jadvallar va Maxsus sarlavhalar bilan)""" 
     try: 
         doc = Document() 

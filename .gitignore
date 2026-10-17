@@ -36,3 +36,5 @@ Thumbs.db
 
 # Documents (generated)
 documents/
+
+.pytest_cache/

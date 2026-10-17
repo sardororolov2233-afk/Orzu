@@ -5,14 +5,16 @@ from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery, FSInputFile
 from aiogram.fsm.context import FSMContext
 from states import CourseWorkState
-from keyboards import main_menu, course_confirm_inline_kb, course_edit_selection_kb, language_selection_kb, course_plan_approval_kb, get_course_tariff_kb
+from keyboards import main_menu, course_confirm_inline_kb, course_edit_selection_kb, language_selection_kb, course_plan_approval_kb
 
-from ai.brain import ask_ai, ask_ai_pro, load_prompt, load_raw_prompt, MODEL_SMART, MODEL_PRO
-from database import save_user_profile, get_user_profile, get_user_balance, update_user_balance, log_user_action, has_used_promo, mark_promo_used
+from ai.brain import ask_ai, load_prompt, load_raw_prompt
+from database import save_user_profile
+from handlers.access import check_access
+from billing import charged_generation
+from aiogram.filters import StateFilter
 from utils.course_doc import create_course_word_document
-from utils.common import MAIN_MENU_COMMANDS
+from utils.common import MAIN_MENU_COMMANDS, show_plan
 
-COURSE_PRICE = 15000
 
 logger = logging.getLogger(__name__)
 
@@ -62,41 +64,17 @@ def generate_context_summary(section_name: str, content: str) -> str:
         summary = content
     return f"[{section_name} xulosasi]: {summary}"
 
-async def ai_request(prompt_text: str, is_pro: bool = False, **kwargs):
-    """Tarif bo'yicha mos AI funksiyasini chaqirish"""
-    if is_pro:
-        return await ask_ai_pro(prompt_text, **kwargs)
-    else:
-        return await ask_ai(prompt_text, **kwargs)
-
-async def polish_text(text: str, topic: str, language: str, is_pro: bool = False) -> str:
-    """Matnni tahrirlash (polishing) — faqat PRO tarif uchun"""
-    if not is_pro:
-        return text
-    
-    try:
-        polish_prompt = load_raw_prompt("course/24_derepeat_polish.txt", text=text, language=language)
-        polished = await ai_request(polish_prompt, is_pro=is_pro)
-        if polished and len(polished) > len(text) * 0.5:  # Matn juda qisqarmagan bo'lsa
-            return polished
-        else:
-            logger.warning("Polishing natijasi juda qisqa, asl matn saqlanadi")
-            return text
-    except Exception as e:
-        logger.error(f"Polishing xatosi: {e}")
-        return text
-
+ai_request = ask_ai
 
 # ═══════════════════════════════════════════════════════
 # KURS ISHI GENERATSIYA — ASOSIY FUNKSIYA
 # ═══════════════════════════════════════════════════════
 
-async def generate_full_course_work(topic: str, plan: str, lang: str, is_pro: bool = False, status_message: Message = None) -> str:
+async def generate_full_course_work(topic: str, plan: str, lang: str, status_message: Message = None) -> str:
     """
     Kurs ishini to'liq generatsiya qilish.
     
-    PRO tarif:  DeepSeek R1-0528 + Kontekst Chain + Polishing
-    Oddiy tarif: Groq Llama 3.3 (hozirgi kabi)
+    DeepSeek R1-0528 va fasllar orasida kontekst aloqasi.
     """
     full_text = []
     context_chain = []  # Oldingi fasllar xulosasi (C daraja: kontekst chain)
@@ -117,7 +95,7 @@ async def generate_full_course_work(topic: str, plan: str, lang: str, is_pro: bo
         return prefix
 
     # Til bo'yicha sarlavhalar
-    if lang == "Русский":
+    if lang in ("Русский", "Rus"):
         chap_prefixes = {1: "ГЛАВА I", 2: "ГЛАВА II"}
         intro_hdr = "ВВЕДЕНИЕ"
         conc_hdr = "ЗАКЛЮЧЕНИЕ"
@@ -136,8 +114,7 @@ async def generate_full_course_work(topic: str, plan: str, lang: str, is_pro: bo
     async def update_status(text):
         if status_message:
             try:
-                tarif_label = "🔥 PRO" if is_pro else "🔹 Oddiy"
-                await status_message.edit_text(f"⏳ {text}\n\n({tarif_label} tarif | Jarayon 3-7 daqiqa davom etadi)")
+                await status_message.edit_text(f"⏳ {text}\n\n(DeepSeek R1 | Ish tayyorlanmoqda)")
             except:
                 pass
     
@@ -174,13 +151,13 @@ MATN FORMATI VA ABZASLAR (MUHIM QOIDALAR):
 - Faqatgina rasm yoki jadval (table) kiritilgandan keyingina yangi abzasdan boshlashingiz mumkin.
 - Matn orasida aslo snoska (footnote) yoki adabiyotga havola (masalan, [1], (Ivanov, 2020) va hokazo) qoldirmang! Barcha adabiyotlar faqatgina ishning eng oxirida "Foydalanilgan adabiyotlar" ro'yxatida yoziladi. Matn ichini toza saqlang.
 """
-    intro_content = await ai_request(p_intro, is_pro=is_pro)
+    intro_content = await ai_request(p_intro)
     
     if intro_content:
         full_text.append(f"{intro_hdr}\n\n{intro_content}")
         context_chain.append(generate_context_summary("KIRISH", intro_content))
     else:
-        full_text.append(f"{intro_hdr}\n\n(Xatolik yuz berdi)")
+        raise RuntimeError("Kirish yaratilmadi")
 
     # ═══════════════════════════════════════════
     # 2. BOBLARNI GENERATSIYA QILISH (Kontekst Chain bilan)
@@ -311,14 +288,14 @@ MATN FORMATI, ABZASLAR VA IQTIBOSLAR (QAT'IY QOIDALAR):
 - MATN ORASIGA SNOSKA (FOOTNOTE) VA ADABIYOT MANBALARINI ASLO KIRITMANG. Hech qanday [1], (Ahmedov, 2021) ko'rinishidagi ishoralarni yozmang! Barcha adabiyotlar faqat asosiy ishning eng oxirida yoziladi.
 """
             
-            content = await ai_request(p_fasl, is_pro=is_pro)
+            content = await ai_request(p_fasl)
             
             if content:
                 full_text.append(f"\n{section_title}\n{content}")
                 # Kontekst chainni yangilash
                 context_chain.append(generate_context_summary(section_title, content))
             else:
-                full_text.append(f"\n{section_title}\n(Ma'lumot generatsiya qilishda xatolik yuz berdi)")
+                raise RuntimeError("Fasl yaratilmadi")
 
     # ═══════════════════════════════════════════
     # 3. UMUMIY XULOSA
@@ -355,12 +332,12 @@ MATN FORMATI VA ABZASLAR (MUHIM QOIDALAR):
 - Butun xulosani yaxlit, uzluksiz tekst sifatida davom ettirib yozing. Matn orasida aslo snoska yoki adabiyot manbalarini ko'rsatmang!
 """
     
-    conclusion = await ai_request(conclusion_prompt, is_pro=is_pro)
+    conclusion = await ai_request(conclusion_prompt)
     
     if conclusion:
         full_text.append(f"\n\n{conc_hdr}\n\n{conclusion}")
     else:
-        full_text.append(f"\n\n{conc_hdr}\n\n(Xatolik yuz berdi)")
+        raise RuntimeError("Xulosa yaratilmadi")
     
     # ═══════════════════════════════════════════
     # 4. ADABIYOTLAR RO'YXATI
@@ -372,7 +349,7 @@ MATN FORMATI VA ABZASLAR (MUHIM QOIDALAR):
         # Fallback: agar yangi prompt topilmasa
         ref_prompt = f"Provide a list of 20 academic references for the course work topic: '{topic}' formatted in standard OTM citation style. The references must be aligned with the {lang} language context. Include at least 4-5 textbooks, 3-4 journal articles, 2-3 laws, and 3-4 foreign language sources. Format each reference properly with author, title, publisher, year, and pages."
     
-    refs = await ai_request(ref_prompt, is_pro=is_pro)
+    refs = await ai_request(ref_prompt)
     full_text.append(f"\n\n{refs_hdr}\n\n{refs}")
 
     full_raw_text = "\n\n".join(full_text)
@@ -384,11 +361,11 @@ MATN FORMATI VA ABZASLAR (MUHIM QOIDALAR):
 # HANDLER FUNKSIYALAR
 # ═══════════════════════════════════════════════════════
 
-@router.message(is_editing, F.state.in_({
+@router.message(is_editing, F.text, ~F.text.in_(MAIN_MENU_COMMANDS), StateFilter(
     CourseWorkState.tema, CourseWorkState.sahifa, CourseWorkState.uslub,
     CourseWorkState.universitet, CourseWorkState.fakultet, CourseWorkState.muallif,
     CourseWorkState.kurs, CourseWorkState.guruh
-}))
+))
 async def update_field_and_return(message: Message, state: FSMContext):
     current_state = await state.get_state()
     value = message.text
@@ -422,7 +399,7 @@ async def update_field_and_return(message: Message, state: FSMContext):
 
 
 async def generate_section(section_name: str, topic: str, plan: str, instructions: str, lang: str) -> str:
-    """Helper to generate a single section using SMART model"""
+    """Helper to generate a single section using DeepSeek R1"""
     try:
         p = load_prompt("course/21_course_section.txt", 
                         topic=topic, 
@@ -432,10 +409,10 @@ async def generate_section(section_name: str, topic: str, plan: str, instruction
                         instructions=instructions, 
                         language=lang)
         
-        content = await ask_ai(p, model=MODEL_SMART)
+        content = await ask_ai(p)
         if not content:
             logger.error(f"Failed to generate content for section: {section_name}")
-            return f"{section_name} bo'yicha ma'lumot topilmadi."
+            raise RuntimeError("Bo‘sh bo‘lim")
             
         clean_content = content.strip()
         if clean_content.lower().startswith(section_name.lower()):
@@ -446,7 +423,7 @@ async def generate_section(section_name: str, topic: str, plan: str, instruction
         return clean_content
     except Exception as e:
         logger.error(f"Error generating section {section_name}: {e}")
-        return "Texnik xatolik."
+        raise
 
 
 async def show_course_confirmation(message: Message, state: FSMContext):
@@ -477,10 +454,12 @@ async def show_course_confirmation(message: Message, state: FSMContext):
 @router.message(F.text == "Kurs ishi")
 async def start_course_menu(message: Message, state: FSMContext):
     await state.clear()
+    if not await check_access(message, message.from_user.id, "course"):
+        return
     await message.answer("Iltimos, mavzuni kiriting:")
     await state.set_state(CourseWorkState.tema)
 
-@router.message(CourseWorkState.tema)
+@router.message(CourseWorkState.tema, F.text, ~F.text.in_(MAIN_MENU_COMMANDS))
 async def get_tema(message: Message, state: FSMContext):
     await state.update_data(tema=message.text)
     
@@ -542,129 +521,32 @@ async def get_til(callback: CallbackQuery, state: FSMContext):
     await show_course_confirmation(callback.message, state)
 
 @router.callback_query(CourseWorkState.confirmation, F.data == "course_confirm")
-async def ask_course_tariff(callback: CallbackQuery, state: FSMContext):
-    data = await state.get_data()
-    has_promo = data.get('has_active_promo', False)
-    
-    msg_text = (
-        "<b>Ta'rifni tanlang:</b>\n\n"
-        "🔹 <b>Oddiy</b> (15 000 so'm) - Standart sifatdagi kurs ishi.\n"
-        "🔥 <b>PRO</b> (29 900 so'm) - Yuqori sifatli, chuqur tahliliy va ilmiy akademik kurs ishi.\n\n"
-        "<i>PRO tarif afzalliklari:</i>\n"
-        "• 🧠 DeepSeek R1-0528 — eng kuchli reasoning AI model\n"
-        "• 🔗 Fasllar o'rtasida kontekst aloqasi\n"
-        "• ✨ Professional tahrirlash (polishing)\n"
-        "• 📊 Chuqurroq tahlil va ko'proq manbalar"
-    )
-    if has_promo:
-        msg_text += "\n\n🎁 <i>Sizda 50% lik chegirma faollashtirilgan!</i>"
-        
-    await callback.message.edit_text(
-        msg_text,
-        reply_markup=get_course_tariff_kb(has_promo),
-        parse_mode="HTML"
-    )
-    await state.set_state(CourseWorkState.tariff_selection)
-
-@router.callback_query(CourseWorkState.tariff_selection, F.data == "course_promo")
-async def ask_course_promo_code(callback: CallbackQuery, state: FSMContext):
-    await callback.message.edit_text("🎁 <b>Promo-kodni kiriting:</b>", parse_mode="HTML")
-    await state.set_state(CourseWorkState.promo)
-
-@router.message(CourseWorkState.promo)
-async def process_course_promo_code(message: Message, state: FSMContext):
-    code = message.text.strip().upper()
-    user_id = message.from_user.id
-    
-    if code == "PROMO50":
-        if await has_used_promo(user_id, "PROMO50"):
-            await message.answer("❌ Siz bu promo-koddan allaqachon foydalangansiz.")
-            await show_course_confirmation(message, state)
-        else:
-            await state.update_data(has_active_promo=True, promo_code="PROMO50")
-            await message.answer("✅ Promo-kod qabul qilindi! Sizga 50% chegirma taqdim etildi.")
-            
-            data = await state.get_data()
-            has_promo = data.get('has_active_promo', False)
-            msg_text = (
-                "<b>Ta'rifni tanlang:</b>\n\n"
-                "🔹 <b>Oddiy</b> (15 000 so'm) - Standart sifatdagi kurs ishi.\n"
-                "🔥 <b>PRO</b> (29 900 so'm) - Yuqori sifatli, chuqur tahliliy va ilmiy akademik kurs ishi.\n\n"
-                "🎁 <i>Sizda 50% lik chegirma faollashtirilgan!</i>"
-            )
-            await message.answer(msg_text, reply_markup=get_course_tariff_kb(has_promo), parse_mode="HTML")
-            await state.set_state(CourseWorkState.tariff_selection)
-    else:
-        await message.answer("❌ Noto'g'ri promo-kod kiritildi.")
-        await show_course_confirmation(message, state)
-
-@router.callback_query(CourseWorkState.tariff_selection, F.data == "tariff_course_back")
-async def course_tariff_back(callback: CallbackQuery, state: FSMContext):
-    await callback.message.delete()
-    await show_course_confirmation(callback.message, state)
-
-@router.callback_query(CourseWorkState.tariff_selection, F.data.in_({"course_tariff_oddiy", "course_tariff_pro"}))
 async def start_course_generation(callback: CallbackQuery, state: FSMContext):
-    user_id = callback.from_user.id
-    
-    is_pro = callback.data == "course_tariff_pro"
-    base_price = 29900 if is_pro else 15000
-    
-    data = await state.get_data()
-    has_promo = data.get('has_active_promo', False)
-    price = int(base_price * 0.5) if has_promo else base_price
-    
-    await state.update_data(tariff_price=price, is_pro=is_pro)
-    
-    # Check balance
-    balance = await get_user_balance(user_id)
-    if balance < price:
-        await callback.answer(f"❌ Balansingizda mablag' yetarli emas!\nKerak: {price} so'm\nMavjud: {balance} so'm", show_alert=True)
+    if not await check_access(callback.message, callback.from_user.id, "course"):
+        await callback.answer()
         return
-
-    await callback.message.delete()
-    
-    tarif_label = "🔥 PRO (DeepSeek R1-0528)" if is_pro else "🔹 Oddiy (Groq Llama)"
-    processing_msg = await callback.message.answer(
-        f"⏳ AI Kurs ishingizni yozishni boshladi...\n"
-        f"Tarif: {tarif_label}\n"
-        f"Bu jarayon {'5-8' if is_pro else '3-5'} daqiqa vaqt oladi. Iltimos kuting.\n"
-        f"<i>(Balansingizdan {price} so'm yechiladi)</i>",
-        parse_mode="HTML"
-    )
-
-    # 1. Generate Plan
-    await processing_msg.edit_text("⏳ Reja tuzilmoqda...")
+    await callback.answer()
+    await callback.message.edit_text("⏳ DeepSeek R1 kurs ishi rejasini tuzmoqda...")
     data = await state.get_data()
-    lang = data.get('til', "O'zbek")
-    
-    prompt_plan = load_raw_prompt("course/20_course_plan.txt", topic=data['tema'], pages=data['sahifa'], language=lang)
-    plan_text = await ai_request(prompt_plan, is_pro=is_pro)
-    
-    if not plan_text:
-        await processing_msg.edit_text("❌ Reja tuzishda xatolik.")
+    prompt = load_raw_prompt("course/20_course_plan.txt", topic=data['tema'], pages=data['sahifa'], language=data.get('til', "O'zbek"))
+    try:
+        plan_text = await ai_request(prompt)
+    except Exception:
+        await show_course_confirmation(callback.message, state)
+        await callback.message.answer("Reja tuzilmadi. Pul yoki limit sarflanmadi. Qayta urinib ko‘ring.")
         return
-
     await state.update_data(plan=plan_text)
     await state.set_state(CourseWorkState.waiting_for_plan_approval)
-    
-    await processing_msg.delete()
-    
-    await callback.message.answer(
-        f"📝 <b>KURS ISHI REJASI:</b>\n\n{plan_text}\n\nRejani tasdiqlaysizmi?",
-        reply_markup=course_plan_approval_kb,
-        parse_mode="HTML"
-    )
+    await show_plan(callback.message, "KURS ISHI REJASI", plan_text, course_plan_approval_kb)
 
 @router.callback_query(CourseWorkState.waiting_for_plan_approval, F.data == "course_plan_regenerate")
 async def regenerate_course_plan(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text("🔄 Yangi reja tuzilmoqda...")
     data = await state.get_data()
     lang = data.get('til', "O'zbek")
-    is_pro = data.get('is_pro', False)
     
     prompt_plan = load_raw_prompt("course/20_course_plan.txt", topic=data['tema'], pages=data['sahifa'], language=lang)
-    plan_text = await ai_request(prompt_plan, is_pro=is_pro)
+    plan_text = await ai_request(prompt_plan)
     
     if not plan_text:
         await callback.message.edit_text("❌ Reja tuzishda xatolik.")
@@ -687,23 +569,20 @@ async def cancel_course_plan(callback: CallbackQuery, state: FSMContext):
     await state.clear()
 
 @router.callback_query(CourseWorkState.waiting_for_plan_approval, F.data == "course_plan_approve")
+@charged_generation("course")
 async def approve_course_plan(callback: CallbackQuery, state: FSMContext):
     await callback.message.delete()
     data = await state.get_data()
-    is_pro = data.get('is_pro', False)
     
-    tarif_label = "🔥 PRO" if is_pro else "🔹 Oddiy"
-    loading_msg = await callback.message.answer(
-        f"⏳ Asosiy qism yozilmoqda ({tarif_label} tarif)...\n"
-        f"Bu {'5-8' if is_pro else '3-5'} daqiqa vaqt oladi..."
-    )
-    
+    charge = data['generation_charge']
+    cost = "Bepul taklif mukofoti" if charge['source'] == 'referral' else f"{int(charge['amount']):,} so‘m"
+    loading_msg = await callback.message.answer(f"⏳ Kurs ishi DeepSeek R1 bilan tayyorlanmoqda. {cost}.")
+
     lang = data.get('til', "O'zbek")
     plan_text = data.get('plan')
     
     course_text = await generate_full_course_work(
         data['tema'], plan_text, lang, 
-        is_pro=is_pro, 
         status_message=loading_msg
     )
     
@@ -723,34 +602,23 @@ async def approve_course_plan(callback: CallbackQuery, state: FSMContext):
         doc_type="KURS ISHI",
         plan=plan_text,
         user_id=callback.from_user.id,
-        is_pro=is_pro
     )
     
     await loading_msg.delete()
     
     if word_file:
-        user_id = callback.from_user.id
-        price = data.get('tariff_price', COURSE_PRICE)
-        await update_user_balance(user_id, -price)
-        await log_user_action(user_id, 'course_work', amount=price)
-        
-        if data.get('has_active_promo') and data.get('promo_code'):
-            await mark_promo_used(user_id, data['promo_code'])
-            await state.update_data(has_active_promo=False, promo_code=None)
-        
         doc = FSInputFile(word_file)
         await callback.message.answer_document(document=doc, caption=f"🎓 {data['tema']}")
         
-        quality_msg = "🔥 PRO sifat — DeepSeek R1-0528 modeli bilan yaratildi" if is_pro else "✅ Standart sifat"
+        quality_msg = "✅ DeepSeek R1 bilan yaratildi"
         await callback.message.answer(
             f"✅ Kurs ishi muvaffaqiyatli yakunlandi!\n{quality_msg}\n\n"
             f"Tanlovingiz uchun minnadormiz. Agar ushbu ishni yanada professional darajada qabul qilmoqchi bo'lsangiz mutahasislarimizga murojat qiling: @sardorbekuralov", 
             reply_markup=main_menu
         )
     else:
-        await callback.message.answer("❌ Fayl yaratishda xatolik.", reply_markup=main_menu)
+        raise RuntimeError("Kurs ishi fayli yaratilmadi")
     
-    await state.clear()
 
 @router.callback_query(CourseWorkState.confirmation, F.data == "course_cancel")
 async def cancel_course(callback: CallbackQuery, state: FSMContext):

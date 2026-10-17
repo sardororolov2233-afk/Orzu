@@ -1,241 +1,192 @@
 import asyncio
-import sys
+import contextlib
 import logging
 import os
-from pathlib import Path
 from aiohttp import web
-
-# Add project root to path
-sys.path.insert(0, str(Path(__file__).parent))
-
-from aiogram import Bot, Dispatcher, F
-from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.filters import CommandStart, Command
+from aiogram import Bot, Dispatcher, F, BaseMiddleware, Router
+from aiogram.filters import CommandStart, Command, CommandObject
 from aiogram.fsm.context import FSMContext
+from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import Message, CallbackQuery
-from config import BOT_TOKEN, ADMIN_ID
-from keyboards import main_menu, subscribe_channel_kb, design_link_kb, obyektivka_link_kb
+from config import BOT_TOKEN, ADMIN_IDS, CHANNEL_USERNAME, OPENROUTER_API_KEY
+from database import get_supabase
+from commerce import register, rpc, parse_referrer, CommerceError, POLICY_TEXT
+from keyboards import main_menu, subscribe_channel_kb, access_keyboard, obyektivka_link_kb
+from handlers import access, payment, referat, presentation, course, admin
 
-# Import routers
-from handlers import referat, presentation, course, ready_works, payment, admin
-
-# Logging konfiguratsiyasi
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Set aiogram logger to DEBUG to see polling details
-logging.getLogger("aiogram").setLevel(logging.DEBUG)
-
-from database import create_or_update_user
-
-CHANNEL_USERNAME = "@yordamch_AI"
 
 async def check_user_subscription(bot: Bot, user_id: int) -> bool:
     try:
-        member = await bot.get_chat_member(chat_id=CHANNEL_USERNAME, user_id=user_id)
-        if member.status in ['member', 'administrator', 'creator']:
-            return True
-        return False
-    except Exception as e:
-        logger.warning(f"Failed to check subscription for {user_id}: {e}")
+        member = await bot.get_chat_member(CHANNEL_USERNAME, user_id)
+        return member.status in {'member', 'administrator', 'creator'} or (
+            member.status == 'restricted' and getattr(member, 'is_member', False))
+    except Exception:
+        logger.exception('Channel membership check failed')
         return False
 
-async def start_handler_local(message: Message, bot: Bot):
-    logger.info(f"🔵 /start buyrugu. Foydalanuvchi: {message.from_user.id}")
+
+async def confirm_referral(user_id, bot):
+    result = await rpc(get_supabase(), 'commerce_confirm_referral', p_user_id=user_id)
+    if result.get('awarded'):
+        with contextlib.suppress(Exception):
+            await bot.send_message(result['referrer_id'], '🎉 Yana 5 ta yangi do‘stingiz tasdiqlandi! '
+                'Bir oyga 5 ta bepul taqdimot va 1 ta bepul kurs ishi qo‘shildi.', reply_markup=access_keyboard)
+
+
+async def show_welcome(message):
+    await message.answer('👋 Xush kelibsiz! Boshlash uchun do‘st taklif qilish yoki bir oylik obuna olishni tanlang.\n\n'
+        + POLICY_TEXT, reply_markup=access_keyboard)
+    await message.answer('Kerakli xizmatni tanlang:', reply_markup=main_menu)
+
+
+async def start_handler_local(message: Message, bot: Bot, state: FSMContext, command: CommandObject):
+    if message.from_user.is_bot:
+        return
     try:
-        is_subbed = await check_user_subscription(bot, message.from_user.id)
-        if not is_subbed:
-            await message.answer(
-                "❌ Botdan foydalanish uchun rasmiy kanalimizga a'zo bo'lishingiz majburiy!\n\n"
-                "Iltimos, avval kanalga obuna bo'ling, so'ng 'Tasdiqlash' tugmasini bosing.",
-                reply_markup=subscribe_channel_kb
-            )
+        await state.clear()
+        # Attribution is saved BEFORE the channel join screen; a later click cannot steal it.
+        await register(get_supabase(), message.from_user.model_dump(), parse_referrer(command.args))
+        await state.update_data(start_action=command.args or '')
+        if not await check_user_subscription(bot, message.from_user.id):
+            await message.answer('Avval rasmiy kanalga a’zo bo‘ling va Tasdiqlash tugmasini bosing.', reply_markup=subscribe_channel_kb)
             return
+        await confirm_referral(message.from_user.id, bot)
+        if command.args == 'payment':
+            await payment.balance_handler(message, state)
+        else:
+            await show_welcome(message)
+    except CommerceError as exc:
+        await message.answer(str(exc))
 
-        # Register/Update user in Supabase
-        user_data = {
-            "first_name": message.from_user.first_name,
-            "last_name": message.from_user.last_name,
-            "username": message.from_user.username,
-        }
-        await create_or_update_user(message.from_user.id, user_data)
-        
-        await message.answer(
-            "👋 Assalomu alaykum!\n\n"
-            "📚 Referat, taqdimot, kurs va diplom ishlarini "
-            "sun'iy intellekt yordamida tayyorlab beramiz.\n\n"
-            "Quyidagilardan birini tanlang 👇",
-            reply_markup=main_menu
-        )
-    except Exception as e:
-        logger.error(f"❌ /start handler xatosi: {str(e)}")
 
-async def help_handler_local(message: Message):
-    await message.answer(
-        "ℹ️ Yordam:\n\n"
-        "/start - Botni qayta boshlash\n"
-        "/help - Bu yordam xabari",
-        reply_markup=main_menu
-    )
+class MembershipMiddleware(BaseMiddleware):
+    async def __call__(self, handler, event, data):
+        user = event.from_user
+        is_start = isinstance(event, Message) and (event.text or '').split('@')[0].split(' ')[0] == '/start'
+        if is_start or (isinstance(event, CallbackQuery) and event.data == 'check_subscription'):
+            return await handler(event, data)
+        if user.id in ADMIN_IDS:
+            return await handler(event, data)
+        if user.is_bot:
+            return
+        target = event.message if isinstance(event, CallbackQuery) else event
+        try:
+            await register(get_supabase(), user.model_dump())
+            if not await check_user_subscription(data['bot'], user.id):
+                if isinstance(event, CallbackQuery):
+                    await event.answer()
+                await target.answer('Kanal a’zoligini tasdiqlang:', reply_markup=subscribe_channel_kb)
+                return
+            await confirm_referral(user.id, data['bot'])
+            return await handler(event, data)
+        except CommerceError as exc:
+            if isinstance(event, CallbackQuery):
+                await event.answer()
+            await target.answer(str(exc))
 
-async def handle_ping(request):
-    logger.debug("Received ping request")
-    return web.Response(text="Bot is running!")
 
-async def start_web_server():
-    """Simple web server to keep the bot alive on cloud platforms"""
-    try:
-        app = web.Application()
-        app.router.add_get('/', handle_ping)
-        runner = web.AppRunner(app)
-        await runner.setup()
-        port = int(os.getenv("PORT", 8080))
-        site = web.TCPSite(runner, '0.0.0.0', port)
-        await site.start()
-        logger.info(f"🌐 Web server started on port {port}")
-    except Exception as e:
-        logger.error(f"❌ Web server start error: {e}")
+def build_dispatcher():
+    dp = Dispatcher(storage=MemoryStorage())
+    dp.message.outer_middleware(MembershipMiddleware())
+    dp.callback_query.outer_middleware(MembershipMiddleware())
+    dp.message.register(start_handler_local, CommandStart())
+
+    @dp.callback_query(F.data == 'check_subscription')
+    async def check_sub_callback(callback: CallbackQuery, bot: Bot, state: FSMContext):
+        if not await check_user_subscription(bot, callback.from_user.id):
+            await callback.answer('Hali kanalga a’zo bo‘lmadingiz.', show_alert=True)
+            return
+        try:
+            await register(get_supabase(), callback.from_user.model_dump())
+            await confirm_referral(callback.from_user.id, bot)
+        except CommerceError as exc:
+            await callback.answer(str(exc), show_alert=True)
+            return
+        action = (await state.get_data()).get('start_action')
+        await state.clear()
+        await callback.answer('A’zolik tasdiqlandi!')
+        await callback.message.edit_reply_markup(reply_markup=None)
+        if action == 'payment':
+            await payment._payment_menu(callback, state)
+        else:
+            await show_welcome(callback.message)
+
+    @dp.message(Command('help'))
+    @dp.message(F.text == '🆘 Yordam')
+    async def help_handler(message: Message, state: FSMContext):
+        await state.clear()
+        await message.answer('Yordam: @sardorbekuralov\n/start — menyu\n'
+            'Takliflar va qolgan limitlar: 👤 Hisob va limitlar.', reply_markup=main_menu)
+
+    @dp.message(F.text == '💵 Narxlar')
+    async def prices_handler(message: Message, state: FSMContext):
+        await state.clear()
+        await message.answer(POLICY_TEXT, reply_markup=access_keyboard)
+
+    @dp.message(F.text.in_({'⬅️ Asosiy menyu', '/menu'}))
+    async def back_to_main(message: Message, state: FSMContext):
+        await state.clear()
+        await message.answer('Asosiy menyu:', reply_markup=main_menu)
+
+    @dp.message(F.text.in_({'📋 Obyektivka tayyorlash', 'Obyektivka tayyorlash'}))
+    async def obyektivka_handler(message: Message, state: FSMContext):
+        await state.clear()
+        await message.answer('📋 Obyektivka tayyorlash:', reply_markup=obyektivka_link_kb)
+
+    dp.include_router(admin.router)
+    dp.include_router(access.router)
+    dp.include_router(payment.router)
+    dp.include_router(presentation.router)
+    dp.include_router(referat.router)
+    dp.include_router(course.router)
+    fallback = Router()
+
+    @fallback.callback_query()
+    async def expired_button(callback: CallbackQuery):
+        await callback.answer('Bu tugma eskirgan yoki buyurtma qabul qilingan. Menyudan qayta boshlang.', show_alert=True)
+
+    dp.include_router(fallback)
+    return dp
+
+
+async def recover_reservations():
+    while True:
+        try:
+            await rpc(get_supabase(), 'commerce_recover_expired')
+        except CommerceError:
+            logger.exception('Reservation recovery failed')
+        await asyncio.sleep(60)
+
 
 async def main():
-    """Bot-ni ishga tushirish"""
+    if not OPENROUTER_API_KEY or not ADMIN_IDS:
+        raise RuntimeError('OPENROUTER_API_KEY va ADMIN_ID sozlanishi kerak')
+    if not (os.getenv('BACKEND_URL') or os.getenv('MINI_APP_URL')):
+        raise RuntimeError('Yangi mini ilova uchun BACKEND_URL yoki MINI_APP_URL kerak')
+    # Missing migration/service credentials must fail before accepting orders.
+    await rpc(get_supabase(), 'commerce_recover_expired')
+    bot = Bot(BOT_TOKEN)
+    dp = build_dispatcher()
+    app = web.Application()
+    app.router.add_get('/', lambda request: web.json_response({'status': 'ok', 'service': 'orzu-bot'}))
+    runner = web.AppRunner(app)
+    await runner.setup()
+    await web.TCPSite(runner, '0.0.0.0', int(os.getenv('PORT', '8080'))).start()
+    recovery = asyncio.create_task(recover_reservations())
     try:
-        logger.info("🎬 Bot startup sequence started...")
-        # Database initialization removed (using Supabase)
-        logger.info("🗄 Unified Supabase database module loaded.")
-        
-        # Bot va Dispatcher yaratish
-        logger.info("🤖 Creating bot and dispatcher instances...")
-        bot = Bot(token=BOT_TOKEN)
-        dp = Dispatcher(storage=MemoryStorage())
+        # Orzu is the sole Telegram update consumer. Never run the API webhook alongside it.
+        await bot.delete_webhook(drop_pending_updates=False)
+        await dp.start_polling(bot)
+    finally:
+        recovery.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await recovery
+        await runner.cleanup()
+        await bot.session.close()
 
-        # Handlerlarni ro'yxatdan o'tkazish
-        logger.info("📝 Registering handlers...")
-        dp.message.register(start_handler_local, CommandStart())
-        dp.message.register(help_handler_local, Command("help"))
-        
-        @dp.message(F.text.in_({"⬅️ Asosiy menyu", "/start"}))
-        async def back_to_main(message: Message):
-            await message.answer("Asosiy menyu:", reply_markup=main_menu)
 
-        @dp.callback_query(F.data == "check_subscription")
-        async def check_sub_callback(callback: CallbackQuery, bot: Bot):
-            is_subbed = await check_user_subscription(bot, callback.from_user.id)
-            if is_subbed:
-                await callback.message.delete()
-                # Run the normal start flow
-                user_data = {
-                    "first_name": callback.from_user.first_name,
-                    "last_name": callback.from_user.last_name,
-                    "username": callback.from_user.username,
-                }
-                await create_or_update_user(callback.from_user.id, user_data)
-                await callback.message.answer(
-                    "✅ Obuna tasdiqlandi!\n\n"
-                    "👋 Assalomu alaykum!\n\n"
-                    "📚 Referat, taqdimot, kurs va diplom ishlarini sun'iy intellekt yordamida tayyorlab beramiz.\n\n"
-                    "Quyidagilardan birini tanlang 👇",
-                    reply_markup=main_menu
-                )
-            else:
-                await callback.answer("❌ Hali obuna bo'lmadingiz. Iltimos kanalga o'tib obuna bo'ling!", show_alert=True)
-
-        @dp.message(F.text == "🆘 Yordam")
-        async def settings_handler(message: Message):
-             await message.answer(
-                "💬 Yordam xizmati\n\n"
-                "Qo'shimcha savollar yoki muammolar yuzasidan administrator bilan bog'laning:\n"
-                "👨‍💻 @sardorbekuralov", 
-                reply_markup=main_menu
-             )
-
-        @dp.message(F.text == "💵 Narxlar")
-        async def prices_handler(message: Message):
-             await message.answer(
-                "💰 <b>Xizmatlarimiz narxlari bilan tanishing:</b>\n\n"
-                "📄 <b>Referat va Mustaqil ishlar:</b>\n"
-                "🔹 Oddiy tarif: 8 000 so'm <i>(Promo-kod bilan: 2 400 so'm)</i>\n"
-                "🔥 PRO tarif: 14 900 so'm <i>(Promo-kod bilan: 4 470 so'm)</i>\n\n"
-                "📚 <b>Kurs ishlari:</b>\n"
-                "🔹 Oddiy tarif: 15 000 so'm <i>(Promo-kod bilan: 4 500 so'm)</i>\n"
-                "🔥 PRO tarif: 29 900 so'm <i>(Promo-kod bilan: 8 970 so'm)</i>\n\n"
-                "📊 <b>Taqdimot (Slaydlar):</b>\n"
-                "🔹 Web dasturimiz orqali narxlanadi (slaydlar soniga qarab).\n\n"
-                "🎁 <i>Eslatma: Promo-kodlarni botimiz va @yordamch_AI kanalimiz orqali olishingiz mumkin!</i>",
-                reply_markup=main_menu,
-                parse_mode="HTML"
-             )
-
-        @dp.message(F.text == "📝 Buyurtma asosida yaratish")
-        async def order_handler(message: Message):
-             await message.answer(
-                "📝 <b>Maxsus buyurtma asosida yaratish</b>\n\n"
-                "Sizda o'ziga xos talablar bormi? Yoki bot funksiyalari doirasidan tashqari maxsus murakkab ish kerakmi?\n"
-                "Batafsil ma'lumot va kelishuv uchun to'g'ridan-to'g'ri administratorimizga murojaat qiling:\n\n"
-                "👨‍💻 <b>Adminga murojaat qiling:</b> @sardorbekuralov",
-                reply_markup=main_menu,
-                parse_mode="HTML"
-             )
-
-        @dp.message(F.text == "🎓 Bitiruv Malakaviy ishi")
-        async def bmi_handler(message: Message):
-             await message.answer(
-                "🎓 <b>Bitiruv Malakaviy Ishi (BMI)</b>\n\n"
-                "Bitiruv malakaviy ishlari va magistrlik dissertatsiyalarini tayyorlash bo'yicha maxsus rahbarlik va yordam ko'rsatamiz.\n"
-                "Talablaringizni muhokama qilish uchun biz bilan bog'laning:\n\n"
-                "👨‍💻 <b>Bizga murojat qiling:</b> @sardorbekuralov",
-                reply_markup=main_menu,
-                parse_mode="HTML"
-             )
-
-        @dp.message(F.text == "🎨 Grafik dizayn tayyorlash")
-        async def design_handler(message: Message):
-             await message.answer(
-                "🎨 <b>Grafik dizayn tayyorlash</b>\n\n"
-                "Quyidagi tugma orqali grafik dizayn tayyorlash sahifasiga o'ting:",
-                reply_markup=design_link_kb,
-                parse_mode="HTML"
-             )
-
-        @dp.message(F.text.in_(["📋 Obyektivka tayyorlash", "Obyektivka tayyorlash"]))
-        async def obyektivka_handler(message: Message, state: FSMContext):
-             await state.clear()
-             await message.answer(
-                "📋 <b>Obyektivka (ma'lumotnoma) tayyorlash</b>\n\n"
-                "Rasmiy ma'lumotnoma (obyektivka)ni qulay tarzda shakllantirish uchun quyidagi havola orqali standart oynasiga o'ting:",
-                reply_markup=obyektivka_link_kb,
-                parse_mode="HTML"
-             )
-
-        # Routerni ulash
-        dp.include_router(admin.router)
-        dp.include_router(referat.router)
-        dp.include_router(presentation.router)
-        dp.include_router(course.router)
-        dp.include_router(ready_works.router)
-        dp.include_router(payment.router)
-        
-        logger.info("✅ Bot va Dispatcher muvaffaqiyat bilan tayyorlandi")
-        
-        # Start Web Server
-        asyncio.create_task(start_web_server())
-
-        # Start Polling with Retry Logic
-        while True:
-            try:
-                # Delete webhook to ensure polling works
-                logger.info("🎬 Polling loop starting: Clearing webhooks...")
-                await bot.delete_webhook(drop_pending_updates=True)
-                logger.info("🚀 Polling started. Waiting for updates...")
-                await dp.start_polling(bot)
-            except Exception as e:
-                logger.error(f"⚠️ Polling xatosi: {e}. 5 soniyadan keyin qayta ulanadi...")
-                await asyncio.sleep(5)
-        
-    except Exception as e:
-        logger.error(f"Bot ishga tushishda xatolik: {e}")
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     asyncio.run(main())
