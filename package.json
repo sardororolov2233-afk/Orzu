@@ -1,0 +1,17 @@
+{
+  "name": "orzu-telegram-serverless",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "configure": "node scripts/configure-serverless.mjs",
+    "check": "node scripts/check-serverless.mjs",
+    "test": "node --test tests/serverless/*.test.mjs",
+    "deploy": "npm run configure && node scripts/check-serverless.mjs --deploy && tgcloud push && node scripts/mark-serverless.mjs",
+    "login": "tgcloud login",
+    "status": "tgcloud status",
+    "run": "tgcloud run",
+    "webhook": "tgcloud webhook"
+  },
+  "devDependencies": { "@tgcloud/cli": "0.2.0" },
+  "engines": { "node": ">=22.15.0" }
+}

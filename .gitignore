@@ -38,3 +38,10 @@ Thumbs.db
 documents/
 
 .pytest_cache/
+
+# Telegram Serverless: backend-only credentials generated from the local .env.
+node_modules/
+.env.serverless
+tgcloud/lib/private.js
+.tgcloud/
+node_modules/

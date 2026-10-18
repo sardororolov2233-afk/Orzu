@@ -162,6 +162,8 @@ async def recover_reservations():
 
 
 async def main():
+    if os.getenv('BOT_TRANSPORT', 'polling').strip().lower() != 'polling':
+        raise RuntimeError('Bot Telegram Serverless rejimida. Eski polling servisini to‘xtating; main.py ni ishga tushirmang.')
     if not OPENROUTER_API_KEY or not ADMIN_IDS:
         raise RuntimeError('OPENROUTER_API_KEY va ADMIN_ID sozlanishi kerak')
     if not (os.getenv('BACKEND_URL') or os.getenv('MINI_APP_URL')):

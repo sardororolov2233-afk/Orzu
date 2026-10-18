@@ -2,6 +2,11 @@
 
 Botning referat/kurs ishi oqimlari, do‘st taklif qilish, oylik obuna va karta to‘lovlari. Taqdimot va maqola uchun [`telegram_ai_presentation`](https://github.com/sardororolov2233-afk/telegram_ai_presentation) backendidagi yangi mini ilova ochiladi.
 
+**Telegram Serverless:** shu botning Python polling o‘rniga ishlaydigan yangi
+modullari `tgcloud/` ichida. [Bosqichma-bosqich ulash](docs/serverless.md).
+Mavjud Supabase va backend ishlatiladi; yangi bot ochish shart emas.
+Quyidagi Python ishga tushirish bo‘limi polling rejimi uchun qolgan.
+
 | Xizmat | Qoida |
 |---|---|
 | Har 5 ta yangi tasdiqlangan do‘st | Bir oyga 5 ta taqdimot **va** 1 ta kurs ishi bepul |
