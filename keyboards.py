@@ -3,6 +3,8 @@ from config import CHANNEL_USERNAME
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.types.web_app_info import WebAppInfo
 
+FRONTEND_URL = os.getenv("FRONTEND_URL", "https://orzu-two.vercel.app").rstrip("/")
+
 WEBAPP_URL = (os.getenv("MINI_APP_URL") or (os.getenv("BACKEND_URL", "").rstrip("/") + "/miniapp" if os.getenv("BACKEND_URL") else os.getenv("FRONTEND_URL", "https://orzu-two.vercel.app"))).rstrip("/")
 
 main_menu = ReplyKeyboardMarkup(keyboard=[
@@ -139,7 +141,7 @@ course_edit_selection_kb = InlineKeyboardMarkup(
 # Referat Reja tasdiqlash uchun
 referat_plan_approval_kb = InlineKeyboardMarkup(
     inline_keyboard=[
-        [InlineKeyboardButton(text="✅ Bepul yaratish", callback_data="plan_approve")],
+        [InlineKeyboardButton(text="✅ Bepul limitdan yoki 1 kvota bilan yaratish", callback_data="plan_approve")],
         [InlineKeyboardButton(text="🔄 Boshqa reja", callback_data="plan_regenerate")],
         [InlineKeyboardButton(text="🚫 Bekor qilish", callback_data="plan_cancel")]
     ]

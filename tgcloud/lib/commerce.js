@@ -44,7 +44,9 @@ export function parseReferrer(value = '') {
   return Number.isSafeInteger(id) ? id : null;
 }
 export function quote(account, service) {
-  const required = QUOTA_COSTS[service];
+  let required = QUOTA_COSTS[service];
+  if (['referat', 'article', 'obyektivka'].includes(service) && !account.standard_trial_enabled) return { allowed: false, reason: 'policy_mismatch' };
+  if (['referat', 'article', 'obyektivka'].includes(service) && Number(account.standard_free_remaining || 0) > 0) required = 0;
   const available = Number(account.referral_credits || 0);
   if (!Number.isInteger(required)) return { allowed: false, reason: 'invalid_service' };
   if (account.access_mode !== 'referral_only') return { allowed: false, reason: 'policy_mismatch' };
@@ -56,5 +58,6 @@ export const money = value => String(Math.trunc(Number(value) || 0)).replace(/\B
 export function accountText(account) {
   return `👥 Tasdiqlangan takliflar: ${account.confirmed_referrals} ta\n🎁 Qolgan umumiy kvota: ${account.referral_credits} ta\n` +
     `📊 Taqdimot yoki dizayn: ${account.referral_credits} martagacha\n📚 Yoki kurs ishi: ${account.course_credits} martagacha\n` +
+    `📄 Referat/maqola/obyektivka uchun qolgan bepul foydalanish: ${account.standard_free_remaining || 0}/3.\n` +
     'Bu imkoniyatlar bitta umumiy kvotadan sarflanadi.';
 }

@@ -51,10 +51,12 @@ async function openService(ctx, service) {
   const offer = quote(await status(ctx.user.id), service);
   if (!offer.allowed) return ctx.reply(ERRORS[offer.reason], accessKeyboard);
   clearSession(ctx.session);
-  await ctx.reply(service === 'presentation' ? '📊 Mavzu, fan shabloni va tilni mini ilovada tanlang. Bitta tayyor taqdimot — bitta limit.' :
-    '📝 Maqola Claude Haiku 5.5 yordamida bepul yaratiladi.',
-    webApp(service === 'presentation' ? '📊 Taqdimot yaratish' : '📝 Maqola yaratish',
-      withQuery(config.miniAppUrl, 'tab', service === 'presentation' ? 'presentations' : 'articles')));
+  if (service === 'article') {
+    return ctx.reply('📝 Maqola Standart oynasida. Uchala standart xizmatga jami 3 ta bepul foydalanish, keyingi har biri — 1 kvota.',
+      webApp('📝 Standart oynani ochish', withQuery(config.frontendUrl, 'tab', 'standard')));
+  }
+  await ctx.reply('📊 Taqdimot yaratish — 1 kvota.',
+    webApp('📊 Taqdimot yaratish', withQuery(config.miniAppUrl, 'tab', 'presentations')));
 }
 
 export async function onMessage(ctx, message) {
@@ -93,7 +95,9 @@ export async function onMessage(ctx, message) {
   else if (text === '📄 Referat yaratish') await startDocument(ctx, 'referat');
   else if (['Kurs ishi', '📚 Kurs ishi', '🎓 Kurs ishi'].includes(text)) await startDocument(ctx, 'course');
   else if (['📋 Obyektivka tayyorlash', 'Obyektivka tayyorlash'].includes(text)) {
-    clearSession(ctx.session); await ctx.reply('📋 Obyektivka tayyorlash:', webApp('📋 Standart oynani ochish', withQuery(config.frontendUrl, 'tab', 'standard')));
+    const offer = quote(await status(ctx.user.id), 'obyektivka');
+    if (!offer.allowed) return ctx.reply(ERRORS[offer.reason], accessKeyboard);
+    clearSession(ctx.session); await ctx.reply('📋 Obyektivka: jami 3 ta bepul standart foydalanish, keyin 1 kvota.', webApp('📋 Standart oynani ochish', withQuery(config.frontendUrl, 'tab', 'standard')));
   } else if (await receiptMessage(ctx, message)) return;
   else if (await broadcastMessage(ctx, message)) return;
   else if (await documentMessage(ctx, message)) return;

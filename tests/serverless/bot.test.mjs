@@ -30,7 +30,7 @@ function harness() {
   const h = { calls: [], sessions: new Map(), done: new Set(), credits: new Map(), balances: new Map(), subscriptions: new Set(),
     users: new Map(), payments: [], jobs: new Map(), member: true, ready: true, blocked: false, sequence: 100,
     bytes: Uint8Array.from([1, 2, 3, 4]), rpcCalls: [] };
-  h.account = id => ({ access_mode: 'referral_only', referral_credits: h.credits.get(id) || 0, balance: h.balances.get(id) || 0, confirmed_referrals: 0, next_reward_in: 5,
+  h.account = id => ({ standard_trial_enabled: true, standard_free_remaining: 3, access_mode: 'referral_only', referral_credits: h.credits.get(id) || 0, balance: h.balances.get(id) || 0, confirmed_referrals: 0, next_reward_in: 5,
     referral_presentations: 0, course_credits: 0, subscription_active: h.subscriptions.has(id),
     subscription_remaining: h.subscriptions.has(id) ? 10 : 0, presentation_period_active: h.subscriptions.has(id),
     subscription_end: '2026-11-18T00:00:00Z' });
@@ -149,7 +149,7 @@ test('one shared wallet gates paid-quota services while referat and article rema
   await h.message('📄 Referat yaratish');
   assert.equal(h.sessions.get(1000).doc.service, 'referat');
   await h.message('📝 Maqola yaratish');
-  assert.ok(h.calls.some(x => x.params?.text?.includes('Maqola Claude')));
+  assert.ok(h.calls.some(x => x.params?.text?.includes('Maqola Standart')));
 });
 test('course wizard persists across updates, uses Haiku and enqueues once with the approved plan', async () => {
   const h = harness(); h.credits.set(1000, 3);
@@ -215,4 +215,18 @@ test('saved course draft cannot enqueue against an older worker after deployment
   assert.equal(h.jobs.size,0);
   assert.equal(h.credits.get(1000),2);
   assert.ok(!h.rpcCalls.some(x=>x.name==='commerce_enqueue'));
+});
+
+test('article uses the existing Standard app and exhausted shared trial costs one credit', async () => {
+  const h=harness();
+  await h.message('📝 Maqola yaratish');
+  const buttons=h.calls.flatMap(x=>x.params?.reply_markup?.inline_keyboard?.flat()||[]);
+  assert.ok(buttons.some(b=>b.web_app?.url==='https://frontend.invalid?tab=standard'));
+  assert.ok(!buttons.some(b=>b.web_app?.url.includes('backend.invalid/miniapp')));
+  const {quote}=await import('../../tgcloud/lib/commerce.js');
+  for(const service of ['article','referat','obyektivka']) {
+    assert.equal(quote({standard_trial_enabled:true,access_mode:'referral_only',standard_free_remaining:0,referral_credits:0},service).allowed,false);
+    assert.equal(quote({standard_trial_enabled:true,access_mode:'referral_only',standard_free_remaining:0,referral_credits:1},service).required_credits,1);
+    assert.equal(quote({standard_trial_enabled:true,access_mode:'referral_only',standard_free_remaining:1,referral_credits:0},service).required_credits,0);
+  }
 });

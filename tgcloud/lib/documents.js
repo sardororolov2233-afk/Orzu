@@ -54,7 +54,7 @@ async function showPlan(ctx) {
   const plan = ctx.session.doc.plan;
   for (let i = 0; i < plan.length; i += 3500) await ctx.reply(plan.slice(i, i + 3500));
   const course = ctx.session.doc.service === 'course';
-  await ctx.reply(course ? 'Kurs ishi: 2 umumiy kvota. Rejani tasdiqlang.' : 'Referat / mustaqil ish bepul. Rejani tasdiqlang.',
+  await ctx.reply(course ? 'Kurs ishi: 2 umumiy kvota. Rejani tasdiqlang.' : 'Referat/mustaqil ish: jami 3 ta bepul standart foydalanish, keyin 1 kvota. Rejani tasdiqlang.',
     inline([button('✅ Yaratishni tasdiqlash', action(ctx.session, 'build'))],
       [button('🔄 Boshqa reja', action(ctx.session, 'regenerate')), button('🚫 Bekor qilish', action(ctx.session, 'cancel'))]));
 }

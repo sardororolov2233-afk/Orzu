@@ -17,6 +17,7 @@ async def account_text(user_id):
         f"🎁 Qolgan umumiy kvota: {account['referral_credits']} ta\n"
         f"📊 Taqdimot yoki dizayn: {account['referral_credits']} martagacha\n"
         f"📚 Yoki kurs ishi: {account['course_credits']} martagacha\n"
+        f"📄 Qolgan bepul standart foydalanish: {account.get('standard_free_remaining', 0)}/3.\n"
         "Bu imkoniyatlar bitta umumiy kvotadan sarflanadi.\n\n" + POLICY_TEXT
     )
 

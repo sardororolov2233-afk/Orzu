@@ -209,7 +209,7 @@ async def start_plan_generation(callback: CallbackQuery, state: FSMContext):
         return
     await state.update_data(plan=plan_text)
     await state.set_state(ReferatState.waiting_for_plan_approval)
-    await show_plan(callback.message, "REFERAT REJASI (bepul)", plan_text, referat_plan_approval_kb)
+    await show_plan(callback.message, "REFERAT REJASI (3 ta umumiy bepul foydalanishdan, keyin 1 kvota)", plan_text, referat_plan_approval_kb)
 
 @router.callback_query(ReferatState.confirmation, F.data == "referat_edit")
 async def edit_referat_start(callback: CallbackQuery, state: FSMContext):
@@ -286,7 +286,7 @@ async def generate_full_content(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     charge = data['generation_charge']
     await callback.message.edit_text(
-        "⏳ Referat bepul tayyorlanmoqda.")
+        "⏳ Referat tayyorlanmoqda. Jami 3 ta bepul standart foydalanish, keyin 1 kvota.")
     plan = data.get('plan')
     tema = data.get('tema')
     lang = data.get('til', "O'zbek")

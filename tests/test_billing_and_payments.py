@@ -45,9 +45,9 @@ def test_shared_credit_costs_and_free_services_ignore_money_and_old_subscription
     assert quote(account, 'presentation')['required_credits'] == 1
     assert quote(account, 'design')['allowed'] is True
     for service in ['referat', 'article', 'obyektivka']:
-        assert quote({}, service)['allowed'] is True
-        assert quote({}, service)['amount'] == 0
-        assert quote({}, service)['source'] == 'free'
+        assert quote({'standard_free_remaining':3}, service)['allowed'] is True
+        assert quote({'standard_free_remaining':3}, service)['amount'] == 0
+        assert quote({'standard_free_remaining':3}, service)['source'] == 'free'
     assert QUOTA_COSTS['course'] == 2
 
 
