@@ -55,7 +55,7 @@ def charged_generation(service):
                 if isinstance(exc, asyncio.CancelledError):
                     raise
                 logger.exception('Document generation failed')
-                note = 'Band qilingan pul yoki limit qaytarildi.' if refunded else 'Hisob tizimi tiklangach band qilingan pul yoki limit avtomatik qaytariladi.'
+                note = 'Band qilingan kvota qaytarildi.' if refunded else 'Hisob tizimi tiklangach band qilingan kvota avtomatik qaytariladi.'
                 await callback.message.answer('Ishni tayyorlash yakunlanmadi. ' + note +
                     ' Yangi buyurtmani menyudan boshlang.', reply_markup=access_keyboard)
             else:

@@ -1,43 +1,60 @@
 # Orzu Telegram bot
 
-Botning referat/kurs ishi oqimlari, do‘st taklif qilish, oylik obuna va karta to‘lovlari. Taqdimot va maqola uchun [`telegram_ai_presentation`](https://github.com/sardororolov2233-afk/telegram_ai_presentation) backendidagi yangi mini ilova ochiladi.
+Telegram polling bot va [`telegram_ai_presentation`](https://github.com/sardororolov2233-afk/telegram_ai_presentation)
+backend bir Supabase loyihasi, bir bot tokeni va bir taklif kvotasi balansidan foydalanadi.
 
-| Xizmat | Qoida |
+| Xizmat / amal | Kvota |
 |---|---|
-| Har 5 ta yangi tasdiqlangan do‘st | Bir oyga 5 ta taqdimot **va** 1 ta kurs ishi bepul |
-| Yana 5 ta yangi do‘st | Mukofot yana beriladi |
-| Bir oylik obuna | 25 000 so‘mga 10 ta taqdimot |
-| Qo‘shimcha taqdimot | Yana takliflar yoki 10 000 so‘m / taqdimot |
-| Qo‘shimcha kurs ishi | Yana takliflar yoki 30 000 so‘m / ish |
-| Referat / mustaqil ish | 8 000 so‘m |
-| Maqola | 10 000 so‘m |
-| Karta | `9860020144204623` |
+| Har bir yangi, kanal a’zoligi tasdiqlangan do‘st | +1 |
+| Taqdimot | −1 |
+| Dizayn (3 ta variant) | −1 |
+| Kurs ishi | −2 |
+| Referat, mustaqil ish, maqola, obyektivka | Bepul |
 
-Obuna taqdimotlarni qamrab oladi. Kurs ishi, maqola va referat alohida. Kurs mukofoti muddatsiz, taqdimot mukofoti faollashgan sanadan bir kalendar oy amal qiladi. Obuna avtomatik yangilanmaydi. Taklif mukofoti obunadan alohida qo‘shiladi. Referat, maqola va kurs ishi yagona `deepseek/deepseek-r1-0528` bilan yaratiladi; boshqa modelga yashirin almashtirish yo‘q.
+Kvota umumiy va muddatsiz. Bitta kvotani bir nechta xizmatda qayta ishlatib bo‘lmaydi.
+Obuna, to‘lov va balans to‘ldirish o‘chirilgan. Eski xabarlardagi to‘lov tugmalari ham hech narsa
+sotib olmaydi, foydalanuvchini do‘st taklif qilishga yo‘naltiradi. Eski moliyaviy ma’lumotlar
+tarix uchun saqlanadi; yangi xizmatlarda pul yechilmaydi.
 
-## Sozlash
+Matn modeli: `anthropic/claude-haiku-5.5`. Backend rasmlari:
+`bytedance-seed/seedream-5-0-flash`. Bir taqdimotda ko‘pi bilan 3 ta AI rasm yaratiladi,
+ko‘proq rasmli shablonlarda ular qayta ishlatiladi. Foydalanuvchi pul to‘lamaydi;
+OpenRouter API xarajatlarini loyiha egasi qoplaydi.
 
-1. Backend va bot uchun **bitta Supabase loyihasi** ishlating. [`supabase/migrations/20261017_commerce.sql`](supabase/migrations/20261017_commerce.sql) ni SQL Editor’da bajaring. Backenddagi fayl aynan shu migratsiya; ikki marta bajarish shart emas. Mavjud balanslar saqlanadi. Ikkala eski servisni to‘xtatib, migratsiyadan keyin yangi versiyalarni ishga tushiring: eski kod hali balansni oddiy o‘qish/yozish orqali o‘zgartiradi.
-2. `.env.example` dan `.env` yarating: `BOT_TOKEN`, `SUPABASE_URL`, server `SUPABASE_SERVICE_ROLE_KEY`, `OPENROUTER_API_KEY`, `ADMIN_ID`, `BACKEND_URL` ni to‘ldiring. `ADMIN_ID` bir nechta bo‘lsa vergul bilan ajrating. Server kalitini mini ilovaga bermang.
-3. Backendni uning README’si bo‘yicha doim ishlaydigan konteynerga joylashtiring. `BACKEND_URL` HTTPS host bo‘lsin; bot `/miniapp` ni qo‘shadi. `MINI_APP_URL` ixtiyoriy to‘liq override. Backenddagi `TELEGRAM_BOT_TOKEN` ayni shu `BOT_TOKEN`, `TELEGRAM_BOT_USERNAME` esa bot username’i bo‘lsin.
-4. BotFather’da backend domenini sozlang. Botni `CHANNEL_USERNAME` kanaliga admin qiling; a’zolik tekshiruvi uchun kerak.
-5. `pip install -r requirements.txt` va `python main.py`. Polling faqat shu servisda ishlaydi; backend webhook’ini yoqmang. Eski obyektivka interfeysi `FRONTEND_URL` orqali saqlangan.
+## Ishga tushirish
 
-Birinchi `/start` ikki yo‘lni ko‘rsatadi: do‘stlarni taklif qilish yoki 25 000 so‘mga obuna. Taklif `https://t.me/BOT_USERNAME?start=ref_TELEGRAM_ID` bilan keladi, kanalga o‘tishdan oldin saqlanadi. Mukofot yangi foydalanuvchining kanal a’zoligi tasdiqlangach hisoblanadi. O‘zini, eski yoki takroriy foydalanuvchini taklif qilish hisoblanmaydi.
+1. Bot va backendni birga yangilang. Umumiy Supabase’da eski `20261017_commerce.sql` bor bo‘lsa,
+   faqat [`supabase/migrations/20261022_referral_only.sql`](supabase/migrations/20261022_referral_only.sql)
+   ni bajaring. Yangi bazada ikkala migratsiya sana tartibida bajariladi. Backend reposidagi
+   SQL nusxasi aynan bir xil; umumiy bazaga ikki marta alohida o‘rnatish shart emas.
+2. Migratsiya eski sarflanmagan taklif mukofotlarini saqlaydi; 5 kishilik chegaraga yetmagan
+   tasdiqlangan takliflarni ham hisoblaydi. Qayta bajarish kvotani takrorlamaydi. Eski pul
+   balansi va obuna kvotaga aylantirilmaydi.
+3. `.env.example` asosida `.env` yarating. `BOT_TOKEN`, `OPENROUTER_API_KEY`,
+   `SUPABASE_URL`, server uchun `SUPABASE_SERVICE_ROLE_KEY`, `CHANNEL_USERNAME`,
+   `BACKEND_URL=https://BACKEND_HOST` kerak. `MINI_APP_URL` berilmasa bot backenddagi `/miniapp`
+   oynasini ochadi. Obyektivkaning eski tashqi oynasi uchun `FRONTEND_URL` saqlangan.
+4. Kanal a’zoligini tekshirish uchun botni rasmiy kanalga admin qiling.
+5. `pip install -r requirements.txt` va `python main.py`. `ADMIN_ID` faqat admin menyusi uchun
+   ixtiyoriy; to‘lovni tasdiqlash endi yo‘q. Yangi `commerce_policy` RPC o‘rnatilmaguncha bot
+   so‘rov qabul qilmaydi.
 
-`👤 Hisob va limitlar` bot hamda mini ilovadagi bir xil qolgan limitlarni ko‘rsatadi. `🎁 Do‘stlarni taklif qilish` shaxsiy havolani beradi. Taqdimot uchun bitta mini ilova tugmasi bor. Eskirgan tanlov tugmalari buyurtmani yashirin yaratmaydi.
+Taklif birinchi `/start ref_ID` da bog‘lanadi. Kanalga o‘tish vaqtida yo‘qolmaydi. Keyingi
+havola uni o‘zgartirmaydi. Faqat yangi Telegram foydalanuvchisi, bir marta tasdiqlanganda
+1 kvota beradi; o‘zini, botni, eski yoki qayta kelgan foydalanuvchini taklif qilish hisoblanmaydi.
 
-## Karta to‘lovlari
+Kurs ishi va referat tasdiqlash tugmalari bir buyurtmaga bitta doimiy UUID beradi. Takroriy
+bosish ishni qayta yaratmaydi. Kurs kvotasi bazada atomar band qilinadi; xatoda bir marta qaytadi.
+Referat bepul. Jarayon uzilib qolsa eskirgan band qilish qaytariladi. Telegram yangilanishlarini
+faqat shu polling bot qabul qiladi — parallel webhook yoqmang.
 
-Hisobni to‘ldirish va obuna uchun karta/chek tugmalari saqlangan. Chek AI tomonidan tahlil qilinadi, **admin kartaga tushumni tekshirib tasdiqlaydi**. `/payments` kutayotgan to‘lovlarni ochadi. Tasdiqlash/rad etish faqat `ADMIN_ID` ga ruxsat etilgan. Bir to‘lov qayta tasdiqlansa balans takror oshmaydi; eski cheklar himoyasi ham saqlanadi. Eski 50% bonus olib tashlangan.
-
-## Ishonchlilik va tekshirish
-
-Pullar va kreditlar Supabase tranzaksiyalari bilan band qilinadi. Tasdiqlashni takror bosish ikkinchi haq yechmaydi. Generatsiya xatosi pul yoki limitni qaytaradi. Bot jarayoni uzilsa, 3 daqiqalik band qilish muddati tugagach qaytarish ishlaydi; qoralamani qayta boshlash kerak. Backend navbati esa bazada saqlanadi.
+## Tekshiruvlar
 
 ```bash
 pip install -r requirements-dev.txt
 pytest -q
 ```
 
-Qo‘shimcha SQL va ikkala repo integratsiya sinovlari backendning README’sida. Testlarda haqiqiy AI, Telegram yoki bankka pulli buyurtma yuborilmaydi. Ishlab turgan Supabase migratsiyasi, kalitlar, kanal huquqi, bir martalik haqiqiy AI generatsiyasi va haqiqiy chek/admin tasdig‘i server sozlamalari bilan tekshirilishi kerak.
+Bot sinovlari yangi model, bepul xizmatlar, umumiy kvota, eski to‘lov tugmalarining yopilgani,
+takroriy bosish va xatoda qaytarishni tekshiradi. Backend reposida SQL va bot → API → haqiqiy
+PPTX/DOCX sinovlari ham bor. `commerce.py` hamda ikkala SQL migratsiyasi ikkala repoda mos bo‘lsin.
