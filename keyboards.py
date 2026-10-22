@@ -9,20 +9,13 @@ main_menu = ReplyKeyboardMarkup(keyboard=[
     [KeyboardButton(text="📊 Taqdimot yaratish"), KeyboardButton(text="Kurs ishi")],
     [KeyboardButton(text="📄 Referat yaratish"), KeyboardButton(text="📝 Maqola yaratish")],
     [KeyboardButton(text="🎁 Do‘stlarni taklif qilish"), KeyboardButton(text="👤 Hisob va limitlar")],
-    [KeyboardButton(text="💳 Hisobni to'ldirish"), KeyboardButton(text="💵 Narxlar")],
+    [KeyboardButton(text="🎨 Dizayn yaratish"), KeyboardButton(text="📌 Foydalanish qoidalari")],
     [KeyboardButton(text="📋 Obyektivka tayyorlash"), KeyboardButton(text="🆘 Yordam")],
 ], resize_keyboard=True)
 
 access_keyboard = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton(text="🎁 5 ta do‘st taklif qilish", callback_data="invite")],
-    [InlineKeyboardButton(text="🗓 Bir oylik obuna — 25 000 so‘m", callback_data="subscribe")],
-    [InlineKeyboardButton(text="💳 Hisobni to‘ldirish", callback_data="payment"),
-     InlineKeyboardButton(text="👤 Limitlarim", callback_data="account")],
-])
-subscription_confirm_kb = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton(text="✅ Balansdan 25 000 so‘mga sotib olish", callback_data="subscribe_confirm")],
-    [InlineKeyboardButton(text="💳 Karta orqali 25 000 so‘m to‘lash", callback_data="pay_subscription")],
-    [InlineKeyboardButton(text="🎁 Do‘st taklif qilish", callback_data="invite")],
+    [InlineKeyboardButton(text="🎁 Do‘st taklif qilish · +1 kvota", callback_data="invite")],
+    [InlineKeyboardButton(text="👤 Kvotalarim", callback_data="account")],
 ])
 
 # Obyektivka uchun havola tugmasi (Standart oyna)
@@ -35,7 +28,7 @@ obyektivka_link_kb = InlineKeyboardMarkup(
 # Grafik dizayn uchun havola tugmasi
 design_link_kb = InlineKeyboardMarkup(
     inline_keyboard=[
-        [InlineKeyboardButton(text="🎨 Dizayn yaratish", web_app=WebAppInfo(url=f"{WEBAPP_URL}/design"))]
+        [InlineKeyboardButton(text="🎨 Dizayn yaratish", web_app=WebAppInfo(url=f"{WEBAPP_URL}?tab=designs"))]
     ]
 )
 
@@ -46,37 +39,6 @@ subscribe_channel_kb = InlineKeyboardMarkup(
         [InlineKeyboardButton(text="✅ Tasdiqlash", callback_data="check_subscription")]
     ]
 )
-
-# Hisobni to'ldirish inline tugmalari
-payment_keyboard = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton(text="🗓 Obuna — 25 000 so‘m", callback_data="pay_subscription")],
-    [InlineKeyboardButton(text="8 000 so‘m", callback_data="pay_8000"),
-     InlineKeyboardButton(text="10 000 so‘m", callback_data="pay_10000")],
-    [InlineKeyboardButton(text="30 000 so‘m", callback_data="pay_30000"),
-     InlineKeyboardButton(text="50 000 so‘m", callback_data="pay_50000")],
-    [InlineKeyboardButton(text="⬅️ Orqaga", callback_data="back_main")],
-])
-
-# Chek yuborish tugmasi
-send_receipt_kb = InlineKeyboardMarkup(
-    inline_keyboard=[
-        [InlineKeyboardButton(text="📤 Chek yuborish", callback_data="send_receipt")],
-        [InlineKeyboardButton(text="⬅️ Bekor qilish", callback_data="payment_cancel")],
-    ]
-)
-
-# Admin uchun chekni tasdiqlash
-def get_admin_approval_kb(payment_id):
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(text="✅ Tasdiqlash", callback_data=f"approve_{payment_id}"),
-                InlineKeyboardButton(text="❌ Rad etish", callback_data=f"reject_{payment_id}"),
-            ]
-        ]
-    )
-
-
 
 # Til tanlash uchun inline tugmalar
 language_selection_kb = InlineKeyboardMarkup(
@@ -177,7 +139,7 @@ course_edit_selection_kb = InlineKeyboardMarkup(
 # Referat Reja tasdiqlash uchun
 referat_plan_approval_kb = InlineKeyboardMarkup(
     inline_keyboard=[
-        [InlineKeyboardButton(text="✅ 8 000 so‘mga yaratish", callback_data="plan_approve")],
+        [InlineKeyboardButton(text="✅ Bepul yaratish", callback_data="plan_approve")],
         [InlineKeyboardButton(text="🔄 Boshqa reja", callback_data="plan_regenerate")],
         [InlineKeyboardButton(text="🚫 Bekor qilish", callback_data="plan_cancel")]
     ]
@@ -186,7 +148,7 @@ referat_plan_approval_kb = InlineKeyboardMarkup(
 # Kurs ishi Reja tasdiqlash uchun
 course_plan_approval_kb = InlineKeyboardMarkup(
     inline_keyboard=[
-        [InlineKeyboardButton(text="✅ Limitdan yoki 30 000 so‘mga yaratish", callback_data="course_plan_approve")],
+        [InlineKeyboardButton(text="✅ 2 kvota bilan yaratish", callback_data="course_plan_approve")],
         [InlineKeyboardButton(text="🔄 Boshqa reja", callback_data="course_plan_regenerate")],
         [InlineKeyboardButton(text="🚫 Bekor qilish", callback_data="course_plan_cancel")]
     ]

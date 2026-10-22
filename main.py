@@ -32,12 +32,13 @@ async def confirm_referral(user_id, bot):
     result = await rpc(get_supabase(), 'commerce_confirm_referral', p_user_id=user_id)
     if result.get('awarded'):
         with contextlib.suppress(Exception):
-            await bot.send_message(result['referrer_id'], '🎉 Yana 5 ta yangi do‘stingiz tasdiqlandi! '
-                'Bir oyga 5 ta bepul taqdimot va 1 ta bepul kurs ishi qo‘shildi.', reply_markup=access_keyboard)
+            await bot.send_message(result['referrer_id'], '🎉 Yangi do‘stingiz tasdiqlandi! '
+                'Umumiy hisobingizga 1 kvota qo‘shildi. Taqdimot/dizayn — 1, kurs ishi — 2 kvota.',
+                reply_markup=access_keyboard)
 
 
 async def show_welcome(message):
-    await message.answer('👋 Xush kelibsiz! Boshlash uchun do‘st taklif qilish yoki bir oylik obuna olishni tanlang.\n\n'
+    await message.answer('👋 Xush kelibsiz! Bepul xizmatdan foydalaning yoki do‘st taklif qilib kvota oling.\n\n'
         + POLICY_TEXT, reply_markup=access_keyboard)
     await message.answer('Kerakli xizmatni tanlang:', reply_markup=main_menu)
 
@@ -121,7 +122,7 @@ def build_dispatcher():
         await message.answer('Yordam: @sardorbekuralov\n/start — menyu\n'
             'Takliflar va qolgan limitlar: 👤 Hisob va limitlar.', reply_markup=main_menu)
 
-    @dp.message(F.text == '💵 Narxlar')
+    @dp.message(F.text.in_({'💵 Narxlar', '📌 Foydalanish qoidalari'}))
     async def prices_handler(message: Message, state: FSMContext):
         await state.clear()
         await message.answer(POLICY_TEXT, reply_markup=access_keyboard)
@@ -163,12 +164,15 @@ async def recover_reservations():
 
 async def main():
     if os.getenv('BOT_TRANSPORT', 'polling').strip().lower() != 'polling':
-        raise RuntimeError('Bot Telegram Serverless rejimida. Eski polling servisini to‘xtating; main.py ni ishga tushirmang.')
-    if not OPENROUTER_API_KEY or not ADMIN_IDS:
-        raise RuntimeError('OPENROUTER_API_KEY va ADMIN_ID sozlanishi kerak')
+        raise RuntimeError('Bot Telegram Serverless rejimida; polling servisini ishga tushirmang.')
+    if not OPENROUTER_API_KEY:
+        raise RuntimeError('OPENROUTER_API_KEY sozlanishi kerak')
     if not (os.getenv('BACKEND_URL') or os.getenv('MINI_APP_URL')):
         raise RuntimeError('Yangi mini ilova uchun BACKEND_URL yoki MINI_APP_URL kerak')
     # Missing migration/service credentials must fail before accepting orders.
+    policy = await rpc(get_supabase(), 'commerce_policy')
+    if policy.get('access_mode') != 'referral_only':
+        raise RuntimeError('20261022_referral_only.sql migratsiyasini qo‘llang')
     await rpc(get_supabase(), 'commerce_recover_expired')
     bot = Bot(BOT_TOKEN)
     dp = build_dispatcher()

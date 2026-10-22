@@ -29,6 +29,6 @@ if raw_admin_ids:
 ADMIN_ID = ADMIN_IDS[0] if ADMIN_IDS else None
 
 if not ADMIN_IDS:
-    print("⚠️ DIQQAT: ADMIN_ID topilmadi! To'lovlarni tasdiqlash ishlamaydi.")
+    print('ADMIN_ID topilmadi. Admin menyusi o‘chiq.')
 
 print('Token va API Keylar yuklandi')

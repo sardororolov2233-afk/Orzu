@@ -5,7 +5,7 @@ import { clearSession } from './session.js';
 import { inline, button, acknowledge, removeButtons } from './ui.js';
 
 const adminKeyboard = inline([button('📊 Statistika', 'admin_stats')],
-  [button('💳 Kutilayotgan to‘lovlar', 'admin_payments')], [button('📢 Hammaga xabar yuborish', 'admin_broadcast')]);
+  [button('📢 Hammaga xabar yuborish', 'admin_broadcast')]);
 export async function adminMenu(ctx) {
   if (config.adminIds.includes(ctx.user.id)) await ctx.reply('🔐 Admin paneli', adminKeyboard);
 }

@@ -6,7 +6,7 @@ import re
 from typing import Optional, List, Dict, Any
 from dotenv import load_dotenv
 from supabase import create_client, Client
-from commerce import rpc, register
+from commerce import rpc, register, CommerceError
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -57,14 +57,7 @@ async def get_user_balance(user_id: int) -> float:
 async def create_pending_payment(user_id: int, amount: int, receipt_file_id: str,
                                  username=None, full_name=None, purpose="topup",
                                  receipt_hash=None, receipt_tx=None, review=None):
-    if amount not in {8000, 10000, 25000, 30000, 50000} or purpose not in {"topup", "subscription"}:
-        raise ValueError("Noto‘g‘ri to‘lov")
-    data = {"user_id": user_id, "amount": amount, "receipt_file_id": receipt_file_id,
-        "username": username, "full_name": full_name, "status": "pending", "purpose": purpose,
-        "receipt_hash": receipt_hash, "receipt_tx": _clean_tx_key(receipt_tx) or None,
-        "review": review or {}}
-    response = await asyncio.to_thread(get_supabase().table("payments").insert(data).execute)
-    return str(response.data[0]["id"]) if response.data else None
+    raise CommerceError('payments_disabled')
 
 
 async def approve_pending_payment(payment_id):

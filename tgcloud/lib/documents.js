@@ -1,6 +1,6 @@
 import { fetch } from 'sdk';
 import config from './config.js';
-import { rpc, rest, status, quote, ERRORS, money } from './commerce.js';
+import { rpc, rest, status, quote, ERRORS } from './commerce.js';
 import { generatePlan } from './ai.js';
 import { requestId } from './bytes.js';
 import { clearSession } from './session.js';
@@ -54,7 +54,7 @@ async function showPlan(ctx) {
   const plan = ctx.session.doc.plan;
   for (let i = 0; i < plan.length; i += 3500) await ctx.reply(plan.slice(i, i + 3500));
   const course = ctx.session.doc.service === 'course';
-  await ctx.reply(course ? 'Kurs ishi: taklif mukofotidan yoki 30 000 so‘m. Rejani tasdiqlang.' : 'Referat / mustaqil ish: 8 000 so‘m. Rejani tasdiqlang.',
+  await ctx.reply(course ? 'Kurs ishi: 2 umumiy kvota. Rejani tasdiqlang.' : 'Referat / mustaqil ish bepul. Rejani tasdiqlang.',
     inline([button('✅ Yaratishni tasdiqlash', action(ctx.session, 'build'))],
       [button('🔄 Boshqa reja', action(ctx.session, 'regenerate')), button('🚫 Bekor qilish', action(ctx.session, 'cancel'))]));
 }
@@ -62,27 +62,28 @@ async function makePlan(ctx) {
   const doc = ctx.session.doc;
   const offer = quote(await status(ctx.user.id), doc.service);
   if (!offer.allowed) return ctx.reply(ERRORS[offer.reason], accessKeyboard);
-  await ctx.reply('⏳ DeepSeek R1 reja tuzmoqda...');
+  await ctx.reply('⏳ Claude Haiku 5.5 reja tuzmoqda...');
   try {
     const plan = await generatePlan(doc.service, doc.data);
     doc.plan = plan; doc.revision++;
     ctx.session.step = 'document_plan';
     await showPlan(ctx);
   } catch {
-    await ctx.reply('Reja tuzilmadi. Pul yoki limit yechilmadi. Qayta urinib ko‘ring.');
+    await ctx.reply('Reja tuzilmadi. Kvota yechilmadi. Qayta urinib ko‘ring.');
     if (doc.plan) { ctx.session.step = 'document_plan'; await showPlan(ctx); }
     else await confirmation(ctx);
   }
 }
+async function backendReady() {
+  try {
+    const response = await fetch(config.backendUrl + '/health');
+    return response.ok && (await response.json()).features?.includes('serverless-referral-only-v2');
+  } catch { return false; }
+}
 export async function startDocument(ctx, service) {
   const offer = quote(await status(ctx.user.id), service);
   if (!offer.allowed) return ctx.reply(ERRORS[offer.reason], accessKeyboard);
-  let ready = false;
-  try {
-    const response = await fetch(config.backendUrl + '/health');
-    ready = response.ok && (await response.json()).features?.includes('serverless-academic-queue-v1');
-  } catch { /* Fail closed before accepting an order on an older backend. */ }
-  if (!ready) return ctx.reply('Bu xizmat hozircha tayyor emas. Birozdan so‘ng qayta urinib ko‘ring. Pul yechilmadi.', mainMenu);
+  if (!await backendReady()) return ctx.reply('Bu xizmat yangilanmoqda. Kvota yechilmadi.', mainMenu);
   clearSession(ctx.session);
   const id = requestId('orzu:' + service + ':' + ctx.user.id + ':' + ctx.key);
   ctx.session.doc = { service, requestId: id, nonce: id.replaceAll('-', '').slice(0, 10), revision: 0,
@@ -137,13 +138,16 @@ export async function documentCallback(ctx, callback) {
     doc.field = index; doc.editing = true; doc.revision++; delete doc.plan;
     await removeButtons(callback); await askField(ctx);
   } else if (name === 'build' && session.step === 'document_plan') {
+    if (!await backendReady()) {
+      await ctx.reply('Backend yangilanmoqda. Buyurtma yuborilmadi va kvota yechilmadi.', mainMenu); return true;
+    }
     const payload = { ...doc.data, plan: doc.plan, send_to_telegram: true };
     const charge = await rpc('commerce_enqueue', { p_user_id: ctx.user.id, p_service: doc.service,
       p_request_id: doc.requestId, p_payload: payload });
     session.lastJob = doc.requestId;
     clearSession(session);
     await removeButtons(callback);
-    await ctx.reply(`✅ Buyurtma navbatga qo‘shildi. To‘lov: ${money(charge.amount)} so‘m.\n` +
+    await ctx.reply(`✅ Buyurtma navbatga qo‘shildi. Sarflangan kvota: ${charge.credit_units || 0}.\n` +
       'Tayyor fayl shu chatga yuboriladi. Botdan chiqib ketsangiz ham buyurtma saqlanadi.',
       inline([button('🔄 Buyurtma holati', 'job_' + session.lastJob)]));
   } else await ctx.reply('Bu tugma eskirgan. Oxirgi xabardagi tugmadan foydalaning.');
@@ -155,7 +159,7 @@ export async function jobStatus(ctx, id) {
   const job = jobs?.[0];
   if (!job) return ctx.reply('Buyurtma topilmadi.');
   const labels = { queued: '⏳ Buyurtma navbatda.', processing: '⏳ Ishingiz tayyorlanmoqda.',
-    failed: 'Ish yakunlanmadi. Band qilingan pul yoki limit qaytarildi.', completed: '✅ Faylingiz tayyor.' };
+    failed: 'Ish yakunlanmadi. Band qilingan kvota qaytarildi.', completed: '✅ Faylingiz tayyor.' };
   if (job.status === 'completed') await ctx.reply(labels.completed,
     webApp('📥 Faylni yuklab olish', withQuery(config.miniAppUrl, 'job', id)));
   else await ctx.reply(labels[job.status] || 'Buyurtma saqlangan.',

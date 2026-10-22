@@ -1,112 +1,32 @@
-# Orzu’ni Telegram Serverless’da ishlatish
+# Orzu Telegram Serverless — referral-only
 
-Bu alohida sinov boti emas: `tgcloud/` shu Orzu / `@Yordamchi_taalaba_bot`
-uchun yozilgan. Python polling o‘rniga Telegram Serverless xabarlar va tugmalarni
-qabul qiladi. Menyu, kanal tekshiruvi, referal, balans, obuna, karta/chek va admin
-tasdig‘i saqlanadi. Referat va kurs ishi chat orqali to‘ldiriladi, reja tasdiqlanadi,
-keyin mavjud backend navbatida DOCX tayyorlanadi. Taqdimot va maqola hozirgi
-mini ilovada ochiladi. Obyektivka havolasi saqlangan.
+Use the existing bot and shared Supabase project. Never run Python polling alongside the platform-managed webhook.
 
-## 1. Avval backend
+## Policy
 
-Mos backend o‘zgarishlarini `telegram_ai_presentation` reposining
-`codex/telegram-serverless` tarmog‘idan joylashtiring. Uning yangi worker’i
-`course` va `referat` navbatlarini ham ishlaydi. Backend `/health` javobidagi
-`features` ro‘yxatida `serverless-academic-queue-v1` ko‘rinishi kerak.
-Bu imkoniyat bo‘lmasa bot kurs/referat buyurtmasini qabul qilmaydi va pul yechmaydi.
+Each newly confirmed friend earns one permanent shared credit. Presentation/design cost one, coursework two. Referat, article and obyektivka are free. Subscriptions and payments are disabled; old payment/approval buttons cannot mutate money or credits. Failed academic jobs refund credits atomically through the existing queue.
 
-Supabase SQL Editor’da mavjud `20261017_commerce.sql` migratsiyasidan **keyin**
-[`20261018_serverless.sql`](../supabase/migrations/20261018_serverless.sql) ni
-bajaring. Ikkala repodagi yangi SQL aynan bir xil, bitta umumiy bazada bir marta
-bajarish kifoya. Balanslar, mukofotlar, cheklar va eski buyurtmalar saqlanadi.
+Text uses `anthropic/claude-haiku-5.5` without fallback. Presentation/design images run in the backend, with at most three generated images per presentation. The configured Seedream model must be available to the project's provider; local tests do not establish that availability.
 
-Migratsiya suhbat holati va takroriy Telegram update’lari uchun server-only
-jadvallar qo‘shadi. Yangi moliyaviy hisob yoki Telegram bazasi yo‘q. Telegram’da
-`tgcloud migrate` bajarish shart emas.
+## Database and backend
 
-## 2. Orzu reposi va sozlamalar
+Apply `20261017_commerce.sql`, `20261018_serverless.sql`, `20261022_referral_only.sql` in order to the same database; do not re-create it. Migrations preserve existing data and unused earned credits. The backend branch must combine the referral-only changes with the Serverless academic worker. `/health` must include `serverless-referral-only-v2`; course/referat orders, including saved drafts, fail closed before enqueue when it does not. The backend remains always on and requires persistent job storage. Serverless does not replace it.
 
-Orzu ishlagan kompyuter yoki SSH terminalida Node.js 22.15+ (tavsiya: 24) kerak:
+## Configure and deploy
+
+Node 24 is supported. Use the existing isolated checkout, not a worktree. Run:
 
 ```bash
-cd "$HOME/Orzu"
-git fetch origin
-git switch codex/telegram-serverless
-npm ci --ignore-scripts
+npm ci --ignore-scripts --cache /workspace/.cache/npm
+npm run configure
 npm run check
 npm test
-npm run configure
+NODE_USE_ENV_PROXY=1 npm run deploy
+NODE_USE_ENV_PROXY=1 npm run webhook
 ```
 
-`configure` mavjud `.env` ni qayta ishlatadi. Kerakli qiymatlar:
-`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (yoki `SUPABASE_KEY`),
-`OPENROUTER_API_KEY`, raqamli `ADMIN_ID`, `CHANNEL_USERNAME`, `BACKEND_URL`.
-`MINI_APP_URL` va `FRONTEND_URL` ixtiyoriy override’lar. Zarur bo‘lsa
-`.env.serverless.example` dan mahalliy `.env.serverless` yarating. U `.env`
-qiymatlarini almashtiradi; terminaldagi env ustun turadi.
+`configure` reads ignored `.env`, `.env.serverless`, and secure runtime variables. Required: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_KEY), OPENROUTER_API_KEY, ADMIN_ID, BACKEND_URL. CHANNEL_USERNAME defaults to @yordamch_AI; set it if using another channel. Keep generated `tgcloud/lib/private.js` private and untracked. Never dump config or enable CLI debug logging while uploading it.
 
-Skript maxfiy qiymatlarni backend-only `tgcloud/lib/private.js` moduliga yozadi.
-Bu modul Git’dan chiqarilgan va faqat Telegram backend’iga deploy bo‘ladi.
-Uni commit qilmang. Token/kalitlarni chatga, screenshot’ga yoki GitHub’ga yubormang.
-Bot API tokeni Serverless modullariga kerak emas; Telegram SDK o‘zi ulanadi.
+Authenticate using a secure TGCLOUD_TOKEN binding or interactive `npm run login`; this is a Serverless CLI token, not a Bot API token. Never paste tokens into chat or commit them. The managed cloud proxy requires NODE_USE_ENV_PROXY=1 for CLI network requests. No Telegram database migration is needed. Never call raw setWebhook/deleteWebhook. Successful deploy writes BOT_TRANSPORT=serverless locally, guarding against accidental polling.
 
-## 3. Shu botni BotFather’da ulash
-
-1. Orzu’ning eski `python main.py` polling jarayoni yoki Alwaysdata servisini to‘xtating.
-2. `@BotFather` → **shu bot** → **Serverless** ni yoqing.
-3. **CLI Access → Access token** ni oching. Bu `app...:...` shaklidagi alohida
-   CLI token; oddiy Bot API tokeni emas.
-4. Terminalda quyidagini bajaring va tokenni **faqat uning so‘roviga** kiriting:
-
-```bash
-npm run login
-npm run deploy
-npm run webhook
-```
-
-CLI tokenini ChatGPT’ga yuborish kerak emas. Token `.tgcloud/` ichida, Git’dan
-tashqarida saqlanadi. `deploy` dan keyin webhook **In sync** bo‘lishi kerak.
-Platforma webhook’ni boshqaradi; boshqa `setWebhook` yoki `deleteWebhook`
-chaqirmang. Python polling va API webhook’ini yonma-yon ishga tushirmang.
-
-Muvaffaqiyatli `deploy` dan keyin mahalliy `.env` ga
-`BOT_TRANSPORT=serverless` yoziladi. Shu checkout’dagi eski `main.py` qayta
-ishlasa boshqariladigan webhook’ni o‘chirib yubormaydi. Boshqa serverdagi eski
-bot nusxalarini ham to‘xtatish kerak; bu belgi boshqa serverga avtomatik ko‘chmaydi.
-
-## 4. Shu botda tekshirish
-
-`/start` → kanalni tasdiqlash → asosiy menyu. Keyin:
-
-- `👤 Hisob va limitlar`: avvalgi balans va mukofotlar.
-- `🎁 Do‘stlarni taklif qilish`: ayni botdagi shaxsiy havola.
-- `💳 Hisobni to‘ldirish`: karta `9860020144204623`, chek va admin tasdig‘i.
-- `Kurs ishi` yoki `Referat`: ma’lumotlar → DeepSeek R1 reja → aniq narx yoki
-  mukofot bilan tasdiqlash → navbat → fayl shu chatda.
-- `/payments` va `/admin`: faqat sozlangan adminlar.
-- Taqdimot/maqola: mavjud mini ilova. Tayyor faylni `Buyurtma holati` orqali ham
-  mini ilovadan yuklab olish mumkin.
-
-AI chek tahlili pul qo‘shmaydi; admin kartaga tushumni tasdiqlaydi. Hash va
-tranzaksiya himoyasi Supabase’da qoladi. Telegram xabari qayta yetkazilsa
-buyurtma uchun pul qayta yechilmaydi. Suhbat holati isolate xotirasida emas,
-Supabase’da saqlanadi; tashlab ketilgan qoralama 2 kundan keyin bekor bo‘ladi.
-Broadcast admin tasdig‘i bilan har safar 15 foydalanuvchiga yuboriladi; keyingi
-guruh uchun admin Davom ettirish tugmasini bosadi.
-
-## Qaytish
-
-BotFather’da Serverless’ni o‘chiring. Eski polling’ga qaytish uchun `.env` dagi
-`BOT_TRANSPORT=polling` ni belgilang va `python main.py` ni ishga tushiring.
-Ikkala rejim ham bitta bazani ishlatadi. Backend navbatidagi buyurtmalar worker’da
-davom etadi; yangi chat qoralamasini menyudan qayta boshlash mumkin.
-
-## Tekshiruv chegarasi
-
-Mahalliy testlarda haqiqiy Telegram, AI va bank so‘rovlari bajarilmaydi. Supabase
-RPC’lari PostgreSQL/PGlite’da, bot esa SDK adapterida tekshiriladi. Haqiqiy botda
-ishga tushirish, platformadagi bajarilish muddati, uzoq DeepSeek reja so‘rovi va
-tarif/kvotalarni BotFather orqali tekshirish qoladi. Serverless CLI tokeni bo‘lmasa
-kod GitHub’da tayyor bo‘ladi, lekin Telegram’ga deploy qilinmagan bo‘ladi.
-
-Rasmiy qo‘llanma: https://core.telegram.org/bots/serverless
+Verify webhook is in sync, then manually check /start, credits, invitation, free article, design, and course/referat. Local tests mock AI and Telegram; they do not perform purchases, broadcasts or paid model requests.

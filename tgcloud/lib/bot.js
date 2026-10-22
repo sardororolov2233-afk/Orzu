@@ -1,12 +1,12 @@
 import { api } from 'sdk';
 import config, { POLICY } from './config.js';
-import { register, parseReferrer, rpc, rest, status, quote, ERRORS, accountText } from './commerce.js';
+import { register, parseReferrer, rpc, status, quote, ERRORS, accountText } from './commerce.js';
 import { clearSession } from './session.js';
 import { startDocument, documentMessage, documentCallback, jobStatus } from './documents.js';
 import { paymentMenu, paymentCallback, receiptMessage, pendingPayments } from './payments.js';
 import { adminMenu, adminCallback, broadcastMessage } from './admin.js';
 import { send, inline, button, notify, acknowledge, removeButtons, mainMenu, accessKeyboard, channelKeyboard,
-  subscriptionKeyboard, webApp, withQuery } from './ui.js';
+  webApp, withQuery } from './ui.js';
 
 async function isMember(userId) {
   try {
@@ -20,7 +20,7 @@ async function isMember(userId) {
 async function confirmReferral(userId) {
   const result = await rpc('commerce_confirm_referral', { p_user_id: userId });
   if (result.awarded) await notify(result.referrer_id,
-    '🎉 Yana 5 ta yangi do‘stingiz tasdiqlandi! Bir oyga 5 ta bepul taqdimot va 1 ta bepul kurs ishi qo‘shildi.', accessKeyboard);
+    '🎉 Yangi do‘stingiz tasdiqlandi! Umumiy hisobingizga 1 kvota qo‘shildi.', accessKeyboard);
 }
 async function gate(ctx) {
   await register(ctx.user);
@@ -32,15 +32,15 @@ async function gate(ctx) {
   await confirmReferral(ctx.user.id); return true;
 }
 async function welcome(ctx) {
-  await ctx.reply('👋 Xush kelibsiz! Boshlash uchun do‘st taklif qilish yoki bir oylik obuna olishni tanlang.\n\n' + POLICY, accessKeyboard);
+  await ctx.reply('👋 Xush kelibsiz! Bepul xizmatlardan foydalaning yoki do‘st taklif qilib kvota oling.\n\n' + POLICY, accessKeyboard);
   await ctx.reply('Kerakli xizmatni tanlang:', mainMenu);
 }
 async function invite(ctx) {
   const me = await api.getMe();
   const account = await status(ctx.user.id);
   await ctx.reply(`🎁 Do‘stlaringizga shu havolani yuboring:\nhttps://t.me/${me.username}?start=ref_${ctx.user.id}\n\n` +
-    `Tasdiqlangan: ${account.confirmed_referrals} ta. Keyingi mukofotgacha: ${account.next_reward_in} ta.\n\n` +
-    'Har 5 ta yangi do‘st uchun bir oyga 5 ta taqdimot va 1 ta kurs ishi bepul. Do‘st havola orqali /start bosib, kanal a’zoligini tasdiqlashi kerak. ' +
+    `Tasdiqlangan: ${account.confirmed_referrals} ta. Qolgan kvota: ${account.referral_credits} ta.\n\n` +
+    'Har bir yangi do‘st — 1 kvota. Taqdimot/dizayn — 1, kurs ishi — 2 kvota. Do‘st havola orqali /start bosib, kanal a’zoligini tasdiqlashi kerak. ' +
     'O‘zingiz va avval ro‘yxatdan o‘tgan foydalanuvchilar hisoblanmaydi.', accessKeyboard);
 }
 async function account(ctx) {
@@ -52,7 +52,7 @@ async function openService(ctx, service) {
   if (!offer.allowed) return ctx.reply(ERRORS[offer.reason], accessKeyboard);
   clearSession(ctx.session);
   await ctx.reply(service === 'presentation' ? '📊 Mavzu, fan shabloni va tilni mini ilovada tanlang. Bitta tayyor taqdimot — bitta limit.' :
-    '📝 Maqola DeepSeek R1 yordamida yaratiladi. Narxi — 10 000 so‘m.',
+    '📝 Maqola Claude Haiku 5.5 yordamida bepul yaratiladi.',
     webApp(service === 'presentation' ? '📊 Taqdimot yaratish' : '📝 Maqola yaratish',
       withQuery(config.miniAppUrl, 'tab', service === 'presentation' ? 'presentations' : 'articles')));
 }
@@ -76,14 +76,19 @@ export async function onMessage(ctx, message) {
   if (['menu', 'cancel'].includes(command?.[1]) || text === '⬅️ Asosiy menyu') {
     clearSession(ctx.session); await ctx.reply('Asosiy menyu:', mainMenu);
   } else if (command?.[1] === 'help' || text === '🆘 Yordam') {
-    clearSession(ctx.session); await ctx.reply('Yordam: @sardorbekuralov\n/start — menyu\n/cancel — bekor qilish\n👤 Hisob va limitlar — balans va qolgan imkoniyatlar.', mainMenu);
+    clearSession(ctx.session); await ctx.reply('Yordam: @sardorbekuralov\n/start — menyu\n/cancel — bekor qilish\n👤 Hisob va limitlar — umumiy kvota va qolgan imkoniyatlar.', mainMenu);
   } else if (command?.[1] === 'admin') await adminMenu(ctx);
   else if (command?.[1] === 'payments') await pendingPayments(ctx);
-  else if (text === '💵 Narxlar') { clearSession(ctx.session); await ctx.reply(POLICY, accessKeyboard); }
+  else if (['💵 Narxlar', '📌 Foydalanish qoidalari'].includes(text)) { clearSession(ctx.session); await ctx.reply(POLICY, accessKeyboard); }
   else if (text === '🎁 Do‘stlarni taklif qilish') { clearSession(ctx.session); await invite(ctx); }
   else if (text === '👤 Hisob va limitlar') { clearSession(ctx.session); await account(ctx); }
   else if (["💳 Hisobni to'ldirish", '💳 Hisobni to‘ldirish'].includes(text)) await paymentMenu(ctx);
   else if (text === '📊 Taqdimot yaratish') await openService(ctx, 'presentation');
+  else if (text === '🎨 Dizayn yaratish') {
+    const offer = quote(await status(ctx.user.id), 'design');
+    if (!offer.allowed) return ctx.reply(ERRORS[offer.reason], accessKeyboard);
+    clearSession(ctx.session); await ctx.reply('🎨 Dizayn — 1 umumiy kvota.', webApp('🎨 Dizayn yaratish', withQuery(config.miniAppUrl, 'tab', 'designs')));
+  }
   else if (text === '📝 Maqola yaratish') await openService(ctx, 'article');
   else if (text === '📄 Referat yaratish') await startDocument(ctx, 'referat');
   else if (['Kurs ishi', '📚 Kurs ishi', '🎓 Kurs ishi'].includes(text)) await startDocument(ctx, 'course');
@@ -108,7 +113,7 @@ export async function onCallback(ctx, callback) {
     return;
   }
   if (!await gate(ctx)) return;
-  // Approval and subscription RPCs remain atomic and idempotent in Supabase.
+  // Retired payment callbacks must never reach a financial RPC.
   if (await paymentCallback(ctx, callback)) return;
   if (await documentCallback(ctx, callback)) return;
   const handled = await adminCallback(ctx, callback);
@@ -116,15 +121,7 @@ export async function onCallback(ctx, callback) {
   const data = callback.data;
   if (data === 'invite') { await acknowledge(callback); await invite(ctx); }
   else if (data === 'account') { await acknowledge(callback); await account(ctx); }
-  else if (data === 'subscribe') {
-    await acknowledge(callback);
-    await ctx.reply('🗓 Bir oylik obuna — 25 000 so‘m, 10 ta taqdimot. Har bir qo‘shimcha taqdimot — 10 000 so‘m.\n' +
-      'Yana 5 ta do‘st taklif qilib 5 ta qo‘shimcha bepul taqdimot ham olishingiz mumkin.\n\n' +
-      'Kurs ishi, referat va maqola obunaga kirmaydi. Xaridni balansdan tasdiqlang yoki karta orqali to‘lab chek yuboring.', subscriptionKeyboard);
-  } else if (data === 'subscribe_confirm') {
-    await rpc('commerce_subscribe', { p_user_id: ctx.user.id });
-    await acknowledge(callback, 'Obuna faollashdi!'); await removeButtons(callback); await account(ctx);
-  } else if (['back_main', 'payment_cancel'].includes(data)) {
+  else if (['back_main', 'payment_cancel'].includes(data)) {
     clearSession(ctx.session); await acknowledge(callback); await ctx.reply('Asosiy menyu:', mainMenu);
   } else if (data.startsWith('job_')) { await acknowledge(callback); await jobStatus(ctx, data.slice(4)); }
   else await acknowledge(callback, 'Bu tugma eskirgan. Menyudan qayta boshlang.', true);

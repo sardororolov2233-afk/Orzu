@@ -5,21 +5,12 @@ export const inline = (...rows) => ({ inline_keyboard: rows });
 export const button = (text, callback_data) => ({ text, callback_data });
 export const mainMenu = { resize_keyboard: true, keyboard: [
   ['📊 Taqdimot yaratish', 'Kurs ishi'], ['📄 Referat yaratish', '📝 Maqola yaratish'],
-  ['🎁 Do‘stlarni taklif qilish', '👤 Hisob va limitlar'], ["💳 Hisobni to'ldirish", '💵 Narxlar'],
+  ['🎁 Do‘stlarni taklif qilish', '👤 Hisob va limitlar'], ['📌 Foydalanish qoidalari', '🎨 Dizayn yaratish'],
   ['📋 Obyektivka tayyorlash', '🆘 Yordam'],
 ].map(row => row.map(text => ({ text }))) };
-export const accessKeyboard = inline([button('🎁 5 ta do‘st taklif qilish', 'invite')],
-  [button('🗓 Bir oylik obuna — 25 000 so‘m', 'subscribe')],
-  [button('💳 Hisobni to‘ldirish', 'payment'), button('👤 Limitlarim', 'account')]);
+export const accessKeyboard = inline([button('🎁 Do‘stlarni taklif qilish', 'invite')], [button('👤 Kvotalarim', 'account')]);
 export const channelKeyboard = inline([{ text: '📢 Kanalga a’zo bo‘lish', url: 'https://t.me/' + config.channel.slice(1) }],
   [button('✅ Tasdiqlash', 'check_subscription')]);
-export const paymentKeyboard = inline([button('🗓 Obuna — 25 000 so‘m', 'pay_subscription')],
-  [button('8 000 so‘m', 'pay_8000'), button('10 000 so‘m', 'pay_10000')],
-  [button('30 000 so‘m', 'pay_30000'), button('50 000 so‘m', 'pay_50000')], [button('⬅️ Orqaga', 'back_main')]);
-export const subscriptionKeyboard = inline([button('✅ Balansdan 25 000 so‘mga sotib olish', 'subscribe_confirm')],
-  [button('💳 Karta orqali 25 000 so‘m to‘lash', 'pay_subscription')], [button('🎁 Do‘st taklif qilish', 'invite')]);
-export const receiptKeyboard = inline([button('📤 Chek yuborish', 'send_receipt')], [button('⬅️ Bekor qilish', 'payment_cancel')]);
-export const approvalKeyboard = id => inline([button('✅ Tasdiqlash', 'approve_' + id), button('❌ Rad etish', 'reject_' + id)]);
 export const escape = value => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 export const withQuery = (url, key, value) => url + (url.includes('?') ? '&' : '?') + encodeURIComponent(key) + '=' + encodeURIComponent(value);
 export const webApp = (text, url) => inline([{ text, web_app: { url } }]);

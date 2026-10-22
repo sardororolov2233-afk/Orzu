@@ -1,4 +1,4 @@
-"""DeepSeek R1 for every academic document. Provider errors never change the model."""
+"""Claude Haiku 5.5 for academic text. Provider errors never change the model."""
 import asyncio
 import logging
 import re
@@ -7,7 +7,7 @@ from openai import AsyncOpenAI
 from config import OPENROUTER_API_KEY
 
 logger = logging.getLogger(__name__)
-ACADEMIC_MODEL = "deepseek/deepseek-r1-0528"
+ACADEMIC_MODEL = "anthropic/claude-haiku-5.5"
 openrouter_client = AsyncOpenAI(base_url="https://openrouter.ai/api/v1", api_key=OPENROUTER_API_KEY,
     timeout=240.0, max_retries=0) if OPENROUTER_API_KEY else None
 
@@ -135,7 +135,7 @@ async def ask_ai(prompt_text, retries=3, temperature=0.3, max_tokens=16384):
             raise ValueError("AI javobi bo‘sh yoki tugallanmagan")
         except Exception as exc:
             last_error = exc
-            logger.warning("DeepSeek R1 attempt %s failed: %s", attempt + 1, exc)
+            logger.warning("Claude Haiku attempt %s failed: %s", attempt + 1, exc)
             if attempt + 1 < retries:
                 await asyncio.sleep(2 ** attempt)
-    raise RuntimeError("DeepSeek R1 javob bermadi") from last_error
+    raise RuntimeError("Claude Haiku 5.5 javob bermadi") from last_error

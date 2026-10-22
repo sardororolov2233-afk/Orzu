@@ -1,11 +1,12 @@
 import { fetch } from 'sdk';
-import config, { PRICES } from './config.js';
+import config, { QUOTA_COSTS } from './config.js';
 
 export const ERRORS = {
-  duplicate_receipt: 'Ushbu chek avval yuborilgan yoki tasdiqlangan.',
-  insufficient_balance: 'Balans yetarli emas. Do‘st taklif qiling yoki hisobni to‘ldiring.',
-  presentation_access_required: '5 ta do‘st taklif qiling yoki 25 000 so‘mga bir oylik obuna oling.',
-  subscription_active: 'Bir oylik obuna allaqachon faol. Qo‘shimcha taqdimot uchun do‘st taklif qiling yoki 10 000 so‘m to‘lang.',
+  insufficient_referral_credits: 'Taklif kvotasi yetarli emas. Har bir yangi do‘st — 1 kvota. Taqdimot/dizayn — 1, kurs ishi — 2 kvota.',
+  subscriptions_disabled: 'Obuna bekor qilingan. Do‘st taklif qilib kvota oling.',
+  payments_disabled: 'To‘lovlar yopilgan. Do‘st taklif qilib kvota oling.',
+  invalid_service: 'Noto‘g‘ri xizmat tanlandi.',
+  policy_mismatch: 'Xizmat yangilanmoqda. Birozdan so‘ng qayta urinib ko‘ring.',
   user_not_registered: 'Avval /start buyrug‘ini bosing.',
   request_conflict: 'Buyurtma ma’lumotlari o‘zgargan. Menyudan yangi buyurtma boshlang.',
   unavailable: 'Hisob tizimiga ulanib bo‘lmadi. Birozdan so‘ng qayta urinib ko‘ring.',
@@ -43,18 +44,17 @@ export function parseReferrer(value = '') {
   return Number.isSafeInteger(id) ? id : null;
 }
 export function quote(account, service) {
-  if (service === 'presentation') {
-    if (account.subscription_active && account.subscription_remaining > 0) return { allowed: true, amount: 0 };
-    if (account.referral_presentations > 0) return { allowed: true, amount: 0 };
-    if (!account.presentation_period_active) return { allowed: false, reason: 'presentation_access_required' };
-  }
-  if (service === 'course' && account.course_credits > 0) return { allowed: true, amount: 0 };
-  return { allowed: Number(account.balance || 0) >= PRICES[service], amount: PRICES[service], reason: 'insufficient_balance' };
+  const required = QUOTA_COSTS[service];
+  const available = Number(account.referral_credits || 0);
+  if (!Number.isInteger(required)) return { allowed: false, reason: 'invalid_service' };
+  if (account.access_mode !== 'referral_only') return { allowed: false, reason: 'policy_mismatch' };
+  return { allowed: available >= required, amount: 0, source: required ? 'referral' : 'free',
+    required_credits: required, missing_credits: Math.max(0, required - available),
+    reason: available < required ? 'insufficient_referral_credits' : null };
 }
 export const money = value => String(Math.trunc(Number(value) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 export function accountText(account) {
-  const sub = account.subscription_active ? `${account.subscription_remaining} ta (${String(account.subscription_end).slice(0, 10)} gacha)` : 'faol emas';
-  return `💳 Balans: ${money(account.balance)} so‘m\n👥 Tasdiqlangan takliflar: ${account.confirmed_referrals} ta\n` +
-    `🎁 Keyingi mukofotgacha: ${account.next_reward_in} ta do‘st\n📊 Bepul taqdimotlar: ${account.referral_presentations} ta\n` +
-    `📚 Bepul kurs ishlari: ${account.course_credits} ta\n🗓 Obuna: ${sub}`;
+  return `👥 Tasdiqlangan takliflar: ${account.confirmed_referrals} ta\n🎁 Qolgan umumiy kvota: ${account.referral_credits} ta\n` +
+    `📊 Taqdimot yoki dizayn: ${account.referral_credits} martagacha\n📚 Yoki kurs ishi: ${account.course_credits} martagacha\n` +
+    'Bu imkoniyatlar bitta umumiy kvotadan sarflanadi.';
 }

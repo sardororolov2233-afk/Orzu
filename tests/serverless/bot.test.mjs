@@ -27,10 +27,10 @@ const response = (body, code = 200) => ({ ok: code >= 200 && code < 300, status:
   json: async () => body, text: async () => body === null ? '' : JSON.stringify(body) });
 
 function harness() {
-  const h = { calls: [], sessions: new Map(), done: new Set(), balances: new Map(), subscriptions: new Set(),
+  const h = { calls: [], sessions: new Map(), done: new Set(), credits: new Map(), balances: new Map(), subscriptions: new Set(),
     users: new Map(), payments: [], jobs: new Map(), member: true, ready: true, blocked: false, sequence: 100,
     bytes: Uint8Array.from([1, 2, 3, 4]), rpcCalls: [] };
-  h.account = id => ({ balance: h.balances.get(id) || 0, confirmed_referrals: 0, next_reward_in: 5,
+  h.account = id => ({ access_mode: 'referral_only', referral_credits: h.credits.get(id) || 0, balance: h.balances.get(id) || 0, confirmed_referrals: 0, next_reward_in: 5,
     referral_presentations: 0, course_credits: 0, subscription_active: h.subscriptions.has(id),
     subscription_remaining: h.subscriptions.has(id) ? 10 : 0, presentation_period_active: h.subscriptions.has(id),
     subscription_end: '2026-11-18T00:00:00Z' });
@@ -43,10 +43,10 @@ function harness() {
     return { message_id: ++h.sequence, chat: { id: params.chat_id } };
   };
   h.fetch = async (url, options = {}) => {
-    if (url === 'https://backend.invalid/health') return response({ features: h.ready ? ['serverless-academic-queue-v1'] : [] });
+    if (url === 'https://backend.invalid/health') return response({ features: h.ready ? ['serverless-referral-only-v2'] : [] });
     if (url === 'https://openrouter.ai/api/v1/chat/completions') {
       const body = JSON.parse(options.body); h.calls.push({ method: 'AI', params: body });
-      return response({ choices: [{ finish_reason: 'stop', message: { content: body.model.startsWith('deepseek/') ?
+      return response({ choices: [{ finish_reason: 'stop', message: { content: body.model === 'anthropic/claude-haiku-5.5' ?
         'MUNDARIJA\nKIRISH\nI BOB: History\n1.1. Origins\n1.2. Development\nII BOB: Analysis\n2.1. Results\n2.2. Proposals\nXULOSA\nADABIYOTLAR' :
         '{"is_receipt":true,"status":"success","detected_amount":25000,"transaction_id":"TX1234","recipient_card":"4623"}' } }] });
     }
@@ -81,11 +81,13 @@ function harness() {
       }
       if (name === 'commerce_enqueue') {
         const existing = h.jobs.get(body.p_request_id);
-        if (existing) { assert.deepEqual(existing.payload, body.p_payload); return response({ created: false, amount: 30000 }); }
-        const amount = body.p_service === 'course' ? 30000 : 8000;
-        h.balances.set(body.p_user_id, h.balances.get(body.p_user_id) - amount);
+        if (existing) { assert.deepEqual(existing.payload, body.p_payload); return response({ created: false, amount: 0, credit_units: body.p_service === 'course' ? 2 : 0 }); }
+        const units = body.p_service === 'course' ? 2 : 0;
+        const available = h.credits.get(body.p_user_id) || 0;
+        if (available < units) return response({message:'insufficient_referral_credits'},409);
+        h.credits.set(body.p_user_id, available - units);
         h.jobs.set(body.p_request_id, { id: body.p_request_id, payload: body.p_payload, status: 'queued' });
-        return response({ created: true, amount });
+        return response({ created: true, amount: 0, credit_units: units });
       }
       throw new Error('Unimplemented RPC ' + name);
     }
@@ -126,34 +128,31 @@ test('referral is attributed before membership and survives the next invocation'
   assert.equal(h.rpcCalls.filter(x => x.name === 'commerce_confirm_referral').length, 1);
   assert.equal(h.users.get(1000).p_user_id, 1000);
 });
-test('redelivery and a second subscription click cannot debit twice', async () => {
+test('all stale payment and subscription buttons are retired without financial RPCs', async () => {
   const h = harness(); h.balances.set(1000, 45000);
-  await h.callback('subscribe_confirm', 1000, 10001);
-  await h.callback('subscribe_confirm', 1000, 10001);
-  await h.callback('subscribe_confirm', 1000, 10002);
-  assert.equal(h.balances.get(1000), 20000);
-  assert.equal(h.rpcCalls.filter(x => x.name === 'commerce_subscribe').length, 2);
+  h.sessions.set(1000, {step: 'payment_receipt'});
+  for (const data of ['subscribe','subscribe_confirm','payment','pay_subscription','pay_10000','send_receipt','approve_12','reject_12','admin_payments']) {
+    await h.callback(data); await h.callback(data,42);
+  }
+  await h.message('/payments');
+  await h.message(undefined,1000,{photo:[{file_id:'photo'}]});
+  assert.equal(h.balances.get(1000),45000);
+  assert.equal(h.payments.length,0);
+  assert.ok(!h.rpcCalls.some(x => /subscribe|approve_payment|reject_payment/.test(x.name)));
+  assert.ok(!h.calls.some(x => x.method === 'AI'));
 });
-test('non-admin cannot approve; admin repeated approval credits only once', async () => {
-  const h = harness(); h.payments.push({ id: 12, user_id: 1000, amount: 10000, status: 'pending' });
-  await h.callback('approve_12');
-  assert.equal(h.rpcCalls.filter(x => x.name === 'commerce_approve_payment').length, 0);
-  await h.callback('approve_12', 42); await h.callback('approve_12', 42);
-  assert.equal(h.balances.get(1000), 10000);
-});
-test('receipt persists without credit; duplicate image cannot create another payment', async () => {
+test('one shared wallet gates paid-quota services while referat and article remain free', async () => {
   const h = harness();
-  await h.callback('pay_subscription'); await h.callback('send_receipt');
-  await h.message(undefined, 1000, { photo: [{ file_id: 'photo', file_size: 4 }] });
-  assert.equal(h.payments.length, 1); assert.equal(h.payments[0].purpose, 'subscription');
-  assert.equal(h.payments[0].receipt_hash, createHash('sha256').update(h.bytes).digest('hex'));
-  assert.equal(h.balances.get(1000), undefined);
-  await h.callback('pay_subscription'); await h.callback('send_receipt');
-  await h.message(undefined, 1000, { photo: [{ file_id: 'photo2', file_size: 4 }] });
-  assert.equal(h.payments.length, 1);
+  for (const text of ['Kurs ishi','📊 Taqdimot yaratish','🎨 Dizayn yaratish']) await h.message(text);
+  assert.equal(h.sessions.get(1000).doc, undefined);
+  assert.ok(!h.calls.some(x => x.params?.reply_markup?.inline_keyboard?.flat().some(b => b.web_app)));
+  await h.message('📄 Referat yaratish');
+  assert.equal(h.sessions.get(1000).doc.service, 'referat');
+  await h.message('📝 Maqola yaratish');
+  assert.ok(h.calls.some(x => x.params?.text?.includes('Maqola Claude')));
 });
-test('course wizard persists across updates, uses R1 and enqueues once with the approved plan', async () => {
-  const h = harness(); h.balances.set(1000, 60000);
+test('course wizard persists across updates, uses Haiku and enqueues once with the approved plan', async () => {
+  const h = harness(); h.credits.set(1000, 3);
   await h.message('Kurs ishi');
   for (const value of ['Kushon davlati', 'Universitet', 'Tarix', 'Sardor Orolov', '4-kurs 401-guruh', '30']) await h.message(value);
   let doc = h.sessions.get(1000).doc;
@@ -162,17 +161,17 @@ test('course wizard persists across updates, uses R1 and enqueues once with the 
   await h.callback(`d:plan:${doc.nonce}.${doc.revision}`);
   doc = h.sessions.get(1000).doc;
   assert.equal(h.sessions.get(1000).step, 'document_plan');
-  assert.equal(h.calls.find(x => x.method === 'AI').params.model, 'deepseek/deepseek-r1-0528');
+  assert.equal(h.calls.find(x => x.method === 'AI').params.model, 'anthropic/claude-haiku-5.5');
   const data = `d:build:${doc.nonce}.${doc.revision}`;
   await h.callback(data); await h.callback(data);
-  assert.equal(h.jobs.size, 1); assert.equal(h.balances.get(1000), 30000);
+  assert.equal(h.jobs.size, 1); assert.equal(h.credits.get(1000), 1);
   const job = [...h.jobs.values()][0]; assert.equal(job.payload.plan, doc.plan);
   assert.equal(job.payload.ish_turi, 'KURS ISHI'); assert.equal(job.payload.send_to_telegram, true);
 });
 test('older backend cannot accept an academic order', async () => {
-  const h = harness(); h.ready = false; h.balances.set(1000, 30000);
+  const h = harness(); h.ready = false; h.credits.set(1000, 2);
   await h.message('Kurs ishi'); assert.equal(h.sessions.get(1000).doc, undefined);
-  assert.equal(h.jobs.size, 0); assert.equal(h.balances.get(1000), 30000);
+  assert.equal(h.jobs.size, 0); assert.equal(h.credits.get(1000), 2);
 });
 test('private conversation cannot be driven by a group message', async () => {
   const h = harness(); await h.message('/start', 1000, { chat: { id: -100, type: 'supergroup' } });
@@ -182,4 +181,38 @@ test('blocked recipient completes the stale update without a retry loop', async 
   const h = harness(); h.blocked = true;
   await h.message('/start', 1000, {}, 12345);
   assert.ok(h.done.has('update:12345'));
+});
+
+test('design opens the correct miniapp tab and old receipt sessions cannot upload a payment', async () => {
+  const h = harness(); h.credits.set(1000, 1);
+  await h.message('🎨 Dizayn yaratish');
+  const buttons = h.calls.flatMap(x => x.params?.reply_markup?.inline_keyboard?.flat() || []);
+  assert.ok(buttons.some(b => b.web_app?.url.endsWith('?tab=designs')));
+  h.sessions.set(1000, {step:'payment_receipt', payment:{amount:25000}});
+  await h.message(undefined,1000,{photo:[{file_id:'photo'}]});
+  assert.equal(h.payments.length,0);
+  assert.equal(h.sessions.get(1000).step,undefined);
+});
+test('a lost course allowance before confirmation does not enqueue or consume another wallet', async () => {
+  const h = harness(); h.credits.set(1000, 2);
+  await h.message('Kurs ishi');
+  for (const value of ['History topic','University','Faculty','Test Author','Group 1','30']) await h.message(value);
+  let doc = h.sessions.get(1000).doc;
+  await h.callback(`d:lang_uz:${doc.nonce}.${doc.revision}`);
+  await h.callback(`d:plan:${doc.nonce}.${doc.revision}`);
+  doc = h.sessions.get(1000).doc;
+  h.credits.set(1000,0); h.balances.set(1000,100000);
+  await h.callback(`d:build:${doc.nonce}.${doc.revision}`);
+  assert.equal(h.jobs.size,0);
+  assert.equal(h.balances.get(1000),100000);
+  assert.equal(h.credits.get(1000),0);
+});
+
+test('saved course draft cannot enqueue against an older worker after deployment', async () => {
+  const h = harness(); h.credits.set(1000, 2); h.ready = false;
+  h.sessions.set(1000,{step:'document_plan',doc:{service:'course',nonce:'saved',revision:1,requestId:'saved-order',plan:'Approved outline',data:{}}});
+  await h.callback('d:build:saved.1');
+  assert.equal(h.jobs.size,0);
+  assert.equal(h.credits.get(1000),2);
+  assert.ok(!h.rpcCalls.some(x=>x.name==='commerce_enqueue'));
 });
