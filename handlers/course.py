@@ -74,7 +74,7 @@ async def generate_full_course_work(topic: str, plan: str, lang: str, status_mes
     """
     Kurs ishini to'liq generatsiya qilish.
     
-    DeepSeek R1-0528 va fasllar orasida kontekst aloqasi.
+    Claude Haiku 5.5 va fasllar orasida kontekst aloqasi.
     """
     full_text = []
     context_chain = []  # Oldingi fasllar xulosasi (C daraja: kontekst chain)
@@ -114,7 +114,7 @@ async def generate_full_course_work(topic: str, plan: str, lang: str, status_mes
     async def update_status(text):
         if status_message:
             try:
-                await status_message.edit_text(f"⏳ {text}\n\n(DeepSeek R1 | Ish tayyorlanmoqda)")
+                await status_message.edit_text(f"⏳ {text}\n\n(Claude Haiku 5.5 | Ish tayyorlanmoqda)")
             except:
                 pass
     
@@ -399,7 +399,7 @@ async def update_field_and_return(message: Message, state: FSMContext):
 
 
 async def generate_section(section_name: str, topic: str, plan: str, instructions: str, lang: str) -> str:
-    """Helper to generate a single section using DeepSeek R1"""
+    """Helper to generate a single section using Claude Haiku 5.5"""
     try:
         p = load_prompt("course/21_course_section.txt", 
                         topic=topic, 
@@ -526,7 +526,7 @@ async def start_course_generation(callback: CallbackQuery, state: FSMContext):
         await callback.answer()
         return
     await callback.answer()
-    await callback.message.edit_text("⏳ DeepSeek R1 kurs ishi rejasini tuzmoqda...")
+    await callback.message.edit_text("⏳ Claude Haiku 5.5 kurs ishi rejasini tuzmoqda...")
     data = await state.get_data()
     prompt = load_raw_prompt("course/20_course_plan.txt", topic=data['tema'], pages=data['sahifa'], language=data.get('til', "O'zbek"))
     try:
@@ -575,8 +575,8 @@ async def approve_course_plan(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     
     charge = data['generation_charge']
-    cost = "Bepul taklif mukofoti" if charge['source'] == 'referral' else f"{int(charge['amount']):,} so‘m"
-    loading_msg = await callback.message.answer(f"⏳ Kurs ishi DeepSeek R1 bilan tayyorlanmoqda. {cost}.")
+    cost = "2 ta taklif kvotasi"
+    loading_msg = await callback.message.answer(f"⏳ Kurs ishi Claude Haiku 5.5 bilan tayyorlanmoqda. {cost}.")
 
     lang = data.get('til', "O'zbek")
     plan_text = data.get('plan')
@@ -610,7 +610,7 @@ async def approve_course_plan(callback: CallbackQuery, state: FSMContext):
         doc = FSInputFile(word_file)
         await callback.message.answer_document(document=doc, caption=f"🎓 {data['tema']}")
         
-        quality_msg = "✅ DeepSeek R1 bilan yaratildi"
+        quality_msg = "✅ Claude Haiku 5.5 bilan yaratildi"
         await callback.message.answer(
             f"✅ Kurs ishi muvaffaqiyatli yakunlandi!\n{quality_msg}\n\n"
             f"Tanlovingiz uchun minnadormiz. Agar ushbu ishni yanada professional darajada qabul qilmoqchi bo'lsangiz mutahasislarimizga murojat qiling: @sardorbekuralov", 

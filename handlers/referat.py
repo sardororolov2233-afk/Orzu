@@ -198,7 +198,7 @@ async def start_plan_generation(callback: CallbackQuery, state: FSMContext):
         await callback.answer()
         return
     await callback.answer()
-    await callback.message.edit_text("⏳ DeepSeek R1 reja tuzmoqda...")
+    await callback.message.edit_text("⏳ Claude Haiku 5.5 reja tuzmoqda...")
     data = await state.get_data()
     prompt = load_prompt("referat/10_referat_plan.txt", topic=data['tema'], language=data.get('til', "O'zbek"))
     try:
@@ -209,7 +209,7 @@ async def start_plan_generation(callback: CallbackQuery, state: FSMContext):
         return
     await state.update_data(plan=plan_text)
     await state.set_state(ReferatState.waiting_for_plan_approval)
-    await show_plan(callback.message, "REFERAT REJASI (yaratish: 8 000 so‘m)", plan_text, referat_plan_approval_kb)
+    await show_plan(callback.message, "REFERAT REJASI (bepul)", plan_text, referat_plan_approval_kb)
 
 @router.callback_query(ReferatState.confirmation, F.data == "referat_edit")
 async def edit_referat_start(callback: CallbackQuery, state: FSMContext):
@@ -286,7 +286,7 @@ async def generate_full_content(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     charge = data['generation_charge']
     await callback.message.edit_text(
-        f"⏳ Referat DeepSeek R1 bilan tayyorlanmoqda. To‘lov: {int(charge['amount']):,} so‘m.")
+        "⏳ Referat bepul tayyorlanmoqda.")
     plan = data.get('plan')
     tema = data.get('tema')
     lang = data.get('til', "O'zbek")
@@ -479,7 +479,7 @@ async def generate_full_content(callback: CallbackQuery, state: FSMContext):
         
         if sent_success:
             try:
-                quality_msg = "✅ DeepSeek R1 bilan yaratildi"
+                quality_msg = "✅ Claude Haiku 5.5 bilan yaratildi"
                 await callback.message.answer(f"✅ Referat muvaffaqiyatli yakunlandi!\n{quality_msg}\n\nTanlovingiz uchun minnadormiz. Agar ushbu ishni yanada professional darajada qabul qilmoqchi bo'lsangiz mutahasislarimizga murojat qiling: @sardorbekuralov", reply_markup=main_menu)
             except:
                 pass # Ignore error on success message if doc is sent
