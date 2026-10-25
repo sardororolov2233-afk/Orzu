@@ -14,7 +14,7 @@ if UNSPLASH_API_KEY:
 if not BOT_TOKEN:
     raise ValueError('BOT_TOKEN topilmadi!')
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'https://orzu-two.vercel.app').rstrip('/')
-CHANNEL_USERNAME = os.getenv('CHANNEL_USERNAME', '@yordamch_AI')
+CHANNEL_USERNAME = os.getenv('CHANNEL_USERNAME', '@maqolachiuzb')
 
 # Admin IDs
 ADMIN_IDS = []

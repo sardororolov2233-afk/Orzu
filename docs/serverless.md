@@ -25,7 +25,7 @@ NODE_USE_ENV_PROXY=1 npm run deploy
 NODE_USE_ENV_PROXY=1 npm run webhook
 ```
 
-`configure` reads ignored `.env`, `.env.serverless`, and secure runtime variables. Required: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_KEY), OPENROUTER_API_KEY, ADMIN_ID, BACKEND_URL. CHANNEL_USERNAME defaults to @yordamch_AI; set it if using another channel. Keep generated `tgcloud/lib/private.js` private and untracked. Never dump config or enable CLI debug logging while uploading it.
+`configure` reads ignored `.env`, `.env.serverless`, and secure runtime variables. Required: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_KEY), OPENROUTER_API_KEY, ADMIN_ID, BACKEND_URL. CHANNEL_USERNAME defaults to @maqolachiuzb; set it if using another channel. Keep generated `tgcloud/lib/private.js` private and untracked. Never dump config or enable CLI debug logging while uploading it.
 
 Authenticate using a secure TGCLOUD_TOKEN binding or interactive `npm run login`; this is a Serverless CLI token, not a Bot API token. Never paste tokens into chat or commit them. The managed cloud proxy requires NODE_USE_ENV_PROXY=1 for CLI network requests. No Telegram database migration is needed. Never call raw setWebhook/deleteWebhook. Successful deploy writes BOT_TRANSPORT=serverless locally, guarding against accidental polling.
 

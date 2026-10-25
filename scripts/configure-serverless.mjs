@@ -22,7 +22,7 @@ const config = {
   supabaseKey: values.SUPABASE_SERVICE_ROLE_KEY || values.SUPABASE_KEY || '',
   openrouterKey: values.OPENROUTER_API_KEY || '',
   adminIds: (values.ADMIN_ID || '').split(',').map(x => x.trim()).filter(x => /^\d+$/.test(x)).map(Number),
-  channel: values.CHANNEL_USERNAME || '@yordamch_AI',
+  channel: values.CHANNEL_USERNAME || '@maqolachiuzb',
   backendUrl: (values.BACKEND_URL || (values.MINI_APP_URL || '').replace(/\/miniapp(?:\?.*)?\/?$/, '')).replace(/\/+$/, ''),
   miniAppUrl: (values.MINI_APP_URL || (values.BACKEND_URL ? values.BACKEND_URL.replace(/\/+$/, '') + '/miniapp' : '')).replace(/\/+$/, ''),
   frontendUrl: (values.FRONTEND_URL || 'https://orzu-two.vercel.app').replace(/\/+$/, ''),
